@@ -1,0 +1,46 @@
+# build output
+dist/
+.astro/
+*.tsbuildinfo
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+*.txt
+
+# environment variables
+.env
+.env.production
+
+# macOS-specific files
+.DS_Store
+
+# jetbrains setting folder
+.idea/
+
+# Testing
+coverage.json
+coverage/
+playwright-report/
+test-results*/
+blob-report/
+
+# Modular Architecture Artifacts
+# These files are generated or symlinked from modules/ at build time
+.agent/tmp/
+prisma/schema.prisma
+src/lib/core/version.ts
+src/lib/email/email-theme-config.ts
+src/styles/theme.css
+packages/agent/src/registry.ts
+packages/agent/bin/
+
+
+# stryker temp files
+.stryker-tmp
