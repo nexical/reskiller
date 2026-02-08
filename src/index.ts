@@ -42,11 +42,48 @@ program
     console.info('\n📋 Skill Plan Proposed by Architect:');
     console.info(JSON.stringify(plan, null, 2));
 
-    // 3. Execute Loop (Simplified Port of old script)
-    // For now, we just print the plan as per V1 requirements
-    console.info(
-      '\nTo execute this plan, we would loop through each item and call Auditor/Critic/Instructor.',
-    );
+    // 3. Execute Loop
+    console.info('\n🚀 Executing Skill Evolution Plan...');
+
+    for (const item of plan.plan) {
+      if (item.type === 'create_skill' || item.type === 'update_skill') {
+        const skillName = item.target_skill || item.name;
+        const modulePath = item.exemplar_module;
+
+        if (!skillName) {
+          console.warn('⚠️  Skipping item: missing skill name', item);
+          continue;
+        }
+
+        if (!modulePath) {
+          console.warn(`⚠️  Skipping ${skillName}: missing exemplar module (truth path)`, item);
+          continue;
+        }
+
+        const target: Target = {
+          name: skillName,
+          skillPath: path.join(SKILLS_DIR, skillName),
+          truthPath: modulePath,
+        };
+
+        // Ensure skill directory exists
+        if (!fs.existsSync(target.skillPath)) {
+          fs.mkdirSync(target.skillPath, { recursive: true });
+        }
+
+        try {
+          const canonFile = stageAuditor(target);
+          const driftFile = stageCritic(target, canonFile);
+          stageInstructor(target, canonFile, driftFile);
+        } catch (error) {
+          console.error(`❌ Failed to evolve skill ${skillName}:`, error);
+        }
+      }
+    }
+
+    console.info('\n📚 Updating Skill Index in GEMINI.md...');
+    await updateGeminiSystemPrompt();
+    console.info('✅ GEMINI.md updated.');
   });
 
 program
@@ -62,10 +99,17 @@ program
       truthPath: modulePath,
     };
 
+    // Ensure skill directory exists
+    if (!fs.existsSync(target.skillPath)) {
+      fs.mkdirSync(target.skillPath, { recursive: true });
+    }
+
     const canonFile = stageAuditor(target);
     const driftFile = stageCritic(target, canonFile);
     stageInstructor(target, canonFile, driftFile);
 
+    console.info('\n📚 Updating Skill Index in GEMINI.md...');
+    await updateGeminiSystemPrompt();
     console.info('Refinement complete.');
   });
 
@@ -73,6 +117,63 @@ function ensureTmpDir() {
   if (!fs.existsSync(TMP_DIR)) {
     fs.mkdirSync(TMP_DIR, { recursive: true });
   }
+}
+
+async function updateGeminiSystemPrompt() {
+  const geminiPath = 'GEMINI.md'; // Root directory
+  if (!fs.existsSync(geminiPath)) {
+    console.error('❌ GEMINI.md not found in root.');
+    return;
+  }
+
+  const skills = fs.readdirSync(SKILLS_DIR).filter((file) => {
+    return fs.statSync(path.join(SKILLS_DIR, file)).isDirectory();
+  });
+
+  const skillLines: string[] = [];
+
+  for (const skill of skills) {
+    const skillMdPath = path.join(SKILLS_DIR, skill, 'SKILL.md');
+    if (fs.existsSync(skillMdPath)) {
+      const content = fs.readFileSync(skillMdPath, 'utf-8');
+      // Simple regex to parse frontmatter description
+      const match = content.match(/^description:\s*(.*)$/m);
+      const description = match ? match[1].trim() : 'No description provided.';
+
+      // Get absolute path for the file link
+      const absPath = path.resolve(skillMdPath);
+      skillLines.push(`- **[${skill}](file://${absPath})**: ${description}`);
+    }
+  }
+
+  const geminiContent = fs.readFileSync(geminiPath, 'utf-8');
+  const sectionHeader = '## 6. Skill Index';
+
+  // Split content by the header
+  const parts = geminiContent.split(sectionHeader);
+  if (parts.length < 2) {
+    console.error('❌ Could not find "## 6. Skill Index" section in GEMINI.md');
+    return;
+  }
+
+  const preSection = parts[0];
+  // The post section might contain content after the list. 
+  // We assume the list goes until the end of file or next H2. 
+  // Based on current GEMINI.md, it's the last section. 
+  // But let's be safe and look for the next '## '
+  const remainingCheck = parts[1];
+  const nextSectionIndex = remainingCheck.substring(1).search(/^## /m); // Skip first char to find next
+
+  let postSection = '';
+  if (nextSectionIndex !== -1) {
+    // There is another section after
+    postSection = remainingCheck.substring(nextSectionIndex + 1); // +1 because we skipped one char
+  }
+
+  const newSectionContent = `\n\nYou have access to the following specialized skills. Use them to perform complex tasks correctly.\n\n${skillLines.join('\n')}\n\n`;
+
+  const newContent = preSection + sectionHeader + newSectionContent + postSection;
+  fs.writeFileSync(geminiPath, newContent, 'utf-8');
 }
 
 // --- Legacy Pipeline Adapters (Ported from old script) ---
