@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "reskill": "dist/index.js"
+    "reskill": "dist/index.js",
+    "prompt": "dist/cli/prompt.js"
   },
   "scripts": {
     "build": "tsc",
