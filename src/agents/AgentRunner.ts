@@ -10,7 +10,6 @@ export class AgentRunner {
       .map(([key, value]) => `--${key} "${value}"`)
       .join(' ');
 
-    // promptPath is relative to project root usually, but let's assume we pass full path or relative to core
     const cmd = `${PROMPT_CMD} ${promptPath} ${flags}`;
 
     console.info(`\n🤖 Agent ${agentName} working...`);

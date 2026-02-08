@@ -25,7 +25,14 @@ program
     ensureTmpDir();
 
     // 1. Explore
-    const explorer = new Explorer(MODULES_DIR, CORE_DIR, TMP_DIR);
+    // Define Paths for the new Architecture
+    const moduleDirs = ['apps/backend/modules', 'apps/frontend/modules'];
+    const platformDirs = [
+      { name: 'core', path: 'core/src' },
+      { name: 'generator', path: 'packages/generator/src' },
+    ];
+
+    const explorer = new Explorer(moduleDirs, platformDirs, TMP_DIR);
     const knowledgeGraph = await explorer.discover();
 
     // 2. Strategize
@@ -75,7 +82,7 @@ function stageAuditor(target: Target): string {
   const outputFile = path.join(TMP_DIR, `${target.name.replace(/\s+/g, '-')}-canon.json`);
   if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
 
-  AgentRunner.run('Auditor', 'prompts/agents/auditor.md', {
+  AgentRunner.run('Auditor', 'agents/auditor.md', {
     module_path: target.truthPath,
     output_file: outputFile,
     arch_file: ARCH_DOC,
@@ -89,7 +96,7 @@ function stageCritic(target: Target, canonFile: string): string {
   const outputFile = path.join(TMP_DIR, `${target.name.replace(/\s+/g, '-')}-drift.md`);
   if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
 
-  AgentRunner.run('Critic', 'prompts/agents/critic.md', {
+  AgentRunner.run('Critic', 'agents/critic.md', {
     audit_file: canonFile,
     doc_file: path.join(target.skillPath, 'SKILL.md'),
     skill_dir: target.skillPath,
@@ -102,7 +109,7 @@ function stageCritic(target: Target, canonFile: string): string {
 
 function stageInstructor(target: Target, canonFile: string, reportFile: string) {
   console.info(`✍️  Rewriting ${target.name}...`);
-  AgentRunner.run('Instructor', 'prompts/agents/instructor.md', {
+  AgentRunner.run('Instructor', 'agents/instructor.md', {
     audit_file: canonFile,
     report_file: reportFile,
     target_file: path.join(target.skillPath, 'SKILL.md'),

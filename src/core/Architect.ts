@@ -21,7 +21,7 @@ export class Architect {
 
     const outputFile = path.join(this.tmpDir, 'skill-plan.json');
 
-    AgentRunner.run('Architect', 'prompts/agents/architect.md', {
+    AgentRunner.run('Architect', 'agents/architect.md', {
       knowledge_graph_file: knowledgeGraphPath,
       skills_list: skillsFile,
       output_file: outputFile,
