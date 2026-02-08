@@ -13,8 +13,8 @@ const TMP_DIR = '.agent/tmp/reskill';
 const MODULES_DIR = 'modules';
 const CORE_DIR = 'src';
 const SKILLS_DIR = '.agent/skills';
-const ARCH_DOC = 'ARCHITECTURE.md';
-const MOD_DOC = 'MODULES.md';
+const ARCH_DOC = 'core/ARCHITECTURE.md';
+const MOD_DOC = 'core/MODULES.md';
 
 program.name('reskill').description('Adaptive Learning System for Nexical Skills').version('1.0.0');
 
