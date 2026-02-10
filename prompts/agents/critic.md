@@ -21,12 +21,14 @@ You are looking for "Drift" - where the documentation is outdated, vague, or inc
 </documentation>
 
 <global_docs>
-<arch_doc path="{{ arch_file }}">
-{{ read(arch_file) }}
+<arch_doc path="{{ constitution.architecture }}">
+{{ read(constitution.architecture) }}
 </arch_doc>
-<modules_doc path="{{ modules_file }}">
-{{ read(modules_file) }}
+{% if constitution.patterns %}
+<modules_doc path="{{ constitution.patterns }}">
+{{ read(constitution.patterns) }}
 </modules_doc>
+{% endif %}
 </global_docs>
 
 <output_path>

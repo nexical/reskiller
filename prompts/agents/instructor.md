@@ -17,18 +17,19 @@ You effectively "Patch" the documentation using the Drift Report.
 </current_skill_directory>
 
 <global_docs>
-<arch_doc path="{{ arch_file }}">
-{{ read(arch_file) }}
+<arch_doc path="{{ constitution.architecture }}">
+{{ read(constitution.architecture) }}
 </arch_doc>
-<modules_doc path="{{ modules_file }}">
-{{ read(modules_file) }}
+{% if constitution.patterns %}
+<modules_doc path="{{ constitution.patterns }}">
+{{ read(constitution.patterns) }}
 </modules_doc>
+{% endif %}
 </global_docs>
 
 <target_document_content>
 {{ read(target_file) }}
 </target_document_content>
-
 {% if gauntlet_report_file %}
 <gauntlet_feedback>
 {{ read(gauntlet_report_file) }}
@@ -40,7 +41,7 @@ You effectively "Patch" the documentation using the Drift Report.
 You are managing the content of the Skill Directory: `{{ skill_dir }}`.
 The entrypoint is `{{ target_file }}` (SKILL.md), but you should also manage templates, examples, and scripts within that directory.
 
-You are ALSO responsible for keeping the Global Docs (`{{ arch_file }}`, `{{ modules_file }}`) in sync with reality.
+You are ALSO responsible for keeping the Global Docs (`{{ constitution.architecture }}`{% if constitution.patterns %}, `{{ constitution.patterns }}`{% endif %}) in sync with reality.
 
 **GENERATOR PROTOCOL**:
 The system relies on `packages/generator` (invoked via `nexical`).

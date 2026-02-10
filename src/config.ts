@@ -1,0 +1,32 @@
+import { z } from 'zod';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+
+export const ReskillConfigSchema = z.object({
+  skillsDir: z.string().default('skills'),
+  constitution: z.object({
+    architecture: z.string(),
+    patterns: z.string().optional(),
+  }),
+  input: z.object({
+    platformDirs: z.array(z.object({ name: z.string(), path: z.string() })),
+    moduleDirs: z.array(z.string()),
+  }),
+  licenseKey: z.string().optional(),
+  outputs: z.object({
+    contextFiles: z.array(z.string()),
+    symlinks: z.array(z.string()).optional().default([]),
+  }),
+});
+
+export type ReskillConfig = z.infer<typeof ReskillConfigSchema>;
+
+export function loadConfig(cwd: string = process.cwd()): ReskillConfig {
+  const configPath = path.join(cwd, 'reskill.config.json');
+  if (!fs.existsSync(configPath)) {
+    throw new Error(`Configuration file not found at ${configPath}`);
+  }
+
+  const rawConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  return ReskillConfigSchema.parse(rawConfig);
+}

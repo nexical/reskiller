@@ -6,7 +6,7 @@ You are a data scientist and researcher. You do not judge, you simply observe an
 <context>
 Values:
 <arch_doc>
-{{ read(arch_file) }}
+{{ read(constitution.architecture) }}
 </arch_doc>
 </context>
 

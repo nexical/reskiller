@@ -16,13 +16,20 @@ interface ScannedModule {
 }
 
 export class Explorer {
+  private constitution: { architecture: string; patterns?: string };
   private moduleDirs: string[];
   private platformDirs: PlatformDir[];
   private tmpDir: string;
 
-  constructor(moduleDirs: string[], platformDirs: PlatformDir[], tmpDir: string) {
+  constructor(
+    moduleDirs: string[],
+    platformDirs: PlatformDir[],
+    constitution: { architecture: string; patterns?: string },
+    tmpDir: string,
+  ) {
     this.moduleDirs = moduleDirs;
     this.platformDirs = platformDirs;
+    this.constitution = constitution;
     this.tmpDir = tmpDir;
   }
 
@@ -42,7 +49,7 @@ export class Explorer {
 
     AgentRunner.run('Explorer', 'agents/explorer.md', {
       modules_list: modulesFile,
-      arch_file: 'core/ARCHITECTURE.md',
+      constitution: this.constitution,
       output_file: outputFile,
     });
 
