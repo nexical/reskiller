@@ -7,6 +7,14 @@ interface PlatformDir {
   path: string;
 }
 
+interface ScannedModule {
+  name: string;
+  path: string;
+  type: 'platform' | 'module';
+  files: string[];
+  error?: string;
+}
+
 export class Explorer {
   private moduleDirs: string[];
   private platformDirs: PlatformDir[];
@@ -48,7 +56,7 @@ export class Explorer {
         return {
           name: dir.name,
           path: dir.path,
-          type: 'platform',
+          type: 'platform' as const,
           files: [],
           error: 'Directory not found',
         };
@@ -56,14 +64,14 @@ export class Explorer {
       return {
         name: dir.name,
         path: dir.path,
-        type: 'platform',
+        type: 'platform' as const,
         files: this.listFiles(dir.path),
       };
     });
   }
 
   private scanModules() {
-    let allModules: any[] = [];
+    let allModules: ScannedModule[] = [];
 
     for (const dir of this.moduleDirs) {
       if (!fs.existsSync(dir)) {
@@ -79,7 +87,7 @@ export class Explorer {
           return {
             name: d.name,
             path: fullPath,
-            type: 'module',
+            type: 'module' as const,
             files: this.listFiles(fullPath),
           };
         });

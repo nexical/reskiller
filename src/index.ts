@@ -10,8 +10,6 @@ import { Target } from './types.js';
 
 const program = new Command();
 const TMP_DIR = '.agent/tmp/reskill';
-const MODULES_DIR = 'modules';
-const CORE_DIR = 'src';
 const SKILLS_DIR = '.agent/skills';
 const ARCH_DOC = 'core/ARCHITECTURE.md';
 const MOD_DOC = 'core/MODULES.md';
@@ -157,9 +155,9 @@ async function updateGeminiSystemPrompt() {
   }
 
   const preSection = parts[0];
-  // The post section might contain content after the list. 
-  // We assume the list goes until the end of file or next H2. 
-  // Based on current GEMINI.md, it's the last section. 
+  // The post section might contain content after the list.
+  // We assume the list goes until the end of file or next H2.
+  // Based on current GEMINI.md, it's the last section.
   // But let's be safe and look for the next '## '
   const remainingCheck = parts[1];
   const nextSectionIndex = remainingCheck.substring(1).search(/^## /m); // Skip first char to find next

@@ -18,6 +18,7 @@ The process is divided into three distinct phases, handled by specialized AI Age
 
 **Agent**: `Explorer`
 **Input**:
+
 - **Platform Core**: `core/src` (The Kernel)
 - **Generator**: `packages/generator/src` (The Tooling)
 - **Modules**: `apps/backend/modules/` and `apps/frontend/modules/` (The User Space)
@@ -25,6 +26,7 @@ The process is divided into three distinct phases, handled by specialized AI Age
 **Goal**: Build a "Knowledge Graph" of the current reality.
 
 The **Explorer** acts as a data scientist. It:
+
 1.  **Scans the Platform**: Deeply analyzes the Core and Generator to understand the fundamental patterns of the OS (The "Kernel Truth").
 2.  **Scans Modules**: Indexes all installed modules across Frontend and Backend.
 3.  **Identifies Exemplars**: Finds modules that best implement the Core's philosophy (e.g., "The best API module is `orchestrator-api`").
