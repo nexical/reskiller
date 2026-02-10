@@ -1,3 +1,4 @@
+import { BaseCommand, type CommandDefinition } from '@nexical/cli-core';
 import { loadConfig } from '../config.js';
 import { ensureSymlinks } from '../core/Symlinker.js';
 import { hooks } from '../core/Hooks.js';
@@ -11,42 +12,63 @@ import {
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 
-export async function refineCommand(skillName: string, modulePath: string) {
-  let config;
-  try {
-    config = loadConfig();
-  } catch {
-    console.error('❌ Missing reskill.config.json. Run "reskill init" first.');
-    process.exit(1);
-    return;
-  }
+export default class RefineCommand extends BaseCommand {
+  static description = 'Manual single-skill refinement';
 
-  ensureTmpDir();
-
-  // Ensure symlinks are set up
-  ensureSymlinks(config);
-
-  console.info(`Refining ${skillName} using ${modulePath}...`);
-
-  const target = {
-    name: skillName,
-    skillPath: path.join(config.skillsDir, skillName),
-    truthPath: modulePath,
+  static args: CommandDefinition = {
+    args: [
+      {
+        name: 'skillName',
+        description: 'Name of the skill to refine',
+        required: true,
+      },
+      {
+        name: 'modulePath',
+        description: 'Path to the exemplar module',
+        required: true,
+      },
+    ],
   };
 
-  // Ensure skill directory exists
-  if (!fs.existsSync(target.skillPath)) {
-    fs.mkdirSync(target.skillPath, { recursive: true });
+  async run(options: { skillName: string; modulePath: string }) {
+    const { skillName, modulePath } = options;
+
+    let config;
+    try {
+      config = loadConfig();
+    } catch {
+      this.error('❌ Missing reskill.config.json. Run "reskill init" first.');
+      process.exit(1);
+      return;
+    }
+
+    ensureTmpDir();
+
+    // Ensure symlinks are set up
+    ensureSymlinks(config);
+
+    this.info(`Refining ${skillName} using ${modulePath}...`);
+
+    const target = {
+      name: skillName,
+      skillPath: path.join(config.skillsDir, skillName),
+      truthPath: modulePath,
+    };
+
+    // Ensure skill directory exists
+    if (!fs.existsSync(target.skillPath)) {
+      fs.mkdirSync(target.skillPath, { recursive: true });
+    }
+
+    const canonFile = stageAuditor(target, config);
+    const driftFile = stageCritic(target, canonFile, config);
+    await hooks.onDriftDetected(target, driftFile);
+
+    stageInstructor(target, canonFile, driftFile, config);
+    await hooks.onSkillUpdated(target);
+
+    this.info('\n📚 Updating Context Files...');
+    await updateContextFiles(config);
+    this.success('Refinement complete.');
   }
-
-  const canonFile = stageAuditor(target, config);
-  const driftFile = stageCritic(target, canonFile, config);
-  await hooks.onDriftDetected(target, driftFile);
-
-  stageInstructor(target, canonFile, driftFile, config);
-  await hooks.onSkillUpdated(target);
-
-  console.info('\n📚 Updating Context Files...');
-  await updateContextFiles(config);
-  console.info('Refinement complete.');
 }

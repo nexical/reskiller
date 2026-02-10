@@ -1,84 +1,89 @@
+import { BaseCommand } from '@nexical/cli-core';
 import { ReskillConfig, loadConfig } from '../config.js';
 import { Target } from '../types.js';
-
 import chokidar from 'chokidar';
+
 // Hooks stub
 export const hooks = {
   onDriftDetected: async (target: Target, driftFile: string) => {},
   onSkillUpdated: async (target: Target) => {},
 };
 
-export async function watchCommand(_options: unknown) {
-  let config: ReskillConfig;
-  try {
-    config = loadConfig();
-  } catch {
-    console.error('❌ Missing reskill.config.json. Run "reskill init" first.');
-    process.exit(1);
-    return; // satisfy ts
+export default class WatchCommand extends BaseCommand {
+  static description = 'Watch for changes and incrementally refine skills (Pro)';
+
+  async run() {
+    let config: ReskillConfig;
+    try {
+      config = loadConfig();
+    } catch {
+      this.error('❌ Missing reskill.config.json. Run "reskill init" first.');
+      process.exit(1);
+      return; // satisfy ts
+    }
+
+    const licenseKey = config.licenseKey || process.env.RESKILL_LICENSE_KEY;
+    if (!licenseKey) {
+      this.error(
+        "🔒 The 'watch' command is a Pro feature. Please upgrade and set 'licenseKey' in config or env.",
+      );
+      process.exit(1);
+    }
+
+    // Verify license (Stub)
+    if (licenseKey === 'expired') {
+      this.error('🔒 License expired.');
+      process.exit(1);
+    }
+    this.info('🔓 Pro License Verified. Starting Watcher...');
+
+    // Setup watcher
+    const watchPaths: string[] = [];
+
+    // Add platform dirs
+    config.input.platformDirs.forEach((pd) => watchPaths.push(pd.path));
+
+    // Add module dirs (resolving globs roughly or just passing globs if chokidar supports it)
+    // config.input.moduleDirs is array of strings (globs?)
+    // chokidar supports globs
+    watchPaths.push(...config.input.moduleDirs);
+
+    this.info(`👀 Watching for changes in: ${JSON.stringify(watchPaths)}`);
+
+    const watcher = chokidar.watch(watchPaths, {
+      ignored: /(^|[/\\])\../, // ignore dotfiles
+      persistent: true,
+      ignoreInitial: true,
+      awaitWriteFinish: {
+        stabilityThreshold: 2000,
+        pollInterval: 100,
+      },
+    });
+
+    watcher.on('change', async (filePath) => {
+      this.info(`\n📝 File changed: ${filePath}`);
+
+      // Determine which module this file belongs to
+      // This is tricky without the full Explorer logic.
+      // simpler approach: just find which config.input.moduleDir (or platformDir) covers this file.
+
+      // For now, let's just say "Change detected, running full evolution?"
+      // Plan says "Incremental Run: identify which module changed".
+
+      // We can iterate over moduleDirs and platformDirs to see which one contains filePath.
+      // If it's a platform file, maybe we need to update ALL skills?
+      // If it's a module file, we check if that module is an exemplar for any skill.
+
+      // This requires loading the Knowledge Graph or Skills Plan.
+      // Let's assume we have a way to know.
+
+      // For MVP, checking if it is an exemplar is hard without previous state.
+      // We could run Architect to see if plan changes? expensive.
+
+      this.info("⚠️  Incremental update not fully implemented. Run 'reskill evolve' to update.");
+
+      // Trigger hook integration for fun
+      // await hooks.onDriftDetected(...)
+    });
   }
-
-  const licenseKey = config.licenseKey || process.env.RESKILL_LICENSE_KEY;
-  if (!licenseKey) {
-    console.error(
-      "🔒 The 'watch' command is a Pro feature. Please upgrade and set 'licenseKey' in config or env.",
-    );
-    process.exit(1);
-  }
-
-  // Verify license (Stub)
-  if (licenseKey === 'expired') {
-    console.error('🔒 License expired.');
-    process.exit(1);
-  }
-  console.info('🔓 Pro License Verified. Starting Watcher...');
-
-  // Setup watcher
-  const watchPaths: string[] = [];
-
-  // Add platform dirs
-  config.input.platformDirs.forEach((pd) => watchPaths.push(pd.path));
-
-  // Add module dirs (resolving globs roughly or just passing globs if chokidar supports it)
-  // config.input.moduleDirs is array of strings (globs?)
-  // chokidar supports globs
-  watchPaths.push(...config.input.moduleDirs);
-
-  console.info(`👀 Watching for changes in:`, watchPaths);
-
-  const watcher = chokidar.watch(watchPaths, {
-    ignored: /(^|[/\\])\../, // ignore dotfiles
-    persistent: true,
-    ignoreInitial: true,
-    awaitWriteFinish: {
-      stabilityThreshold: 2000,
-      pollInterval: 100,
-    },
-  });
-
-  watcher.on('change', async (filePath) => {
-    console.info(`\n📝 File changed: ${filePath}`);
-
-    // Determine which module this file belongs to
-    // This is tricky without the full Explorer logic.
-    // simpler approach: just find which config.input.moduleDir (or platformDir) covers this file.
-
-    // For now, let's just say "Change detected, running full evolution?"
-    // Plan says "Incremental Run: identify which module changed".
-
-    // We can iterate over moduleDirs and platformDirs to see which one contains filePath.
-    // If it's a platform file, maybe we need to update ALL skills?
-    // If it's a module file, we check if that module is an exemplar for any skill.
-
-    // This requires loading the Knowledge Graph or Skills Plan.
-    // Let's assume we have a way to know.
-
-    // For MVP, checking if it is an exemplar is hard without previous state.
-    // We could run Architect to see if plan changes? expensive.
-
-    console.info("⚠️  Incremental update not fully implemented. Run 'reskill evolve' to update.");
-
-    // Trigger hook integration for fun
-    // await hooks.onDriftDetected(...)
-  });
 }

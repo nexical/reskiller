@@ -1,44 +1,25 @@
 #!/usr/bin/env node
 
-import { Command } from 'commander';
-import { loadConfig } from './config.js';
+import { CLI } from '@nexical/cli-core';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import pkg from '../package.json' with { type: 'json' };
 
-import { initCommand } from './commands/init.js';
-import { watchCommand } from './commands/watch.js';
-import { evolveCommand } from './commands/evolve.js';
-import { refineCommand } from './commands/refine.js';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const program = new Command();
+async function main() {
+  const commandName = 'reskill';
+  const coreCommandsDir = path.resolve(__dirname, './commands');
 
-program.name('reskill').description('Adaptive Learning System for Nexical Skills').version('1.0.0');
+  const app = new CLI({
+    version: pkg.version,
+    commandName: commandName,
+    searchDirectories: [coreCommandsDir],
+  });
 
-program
-  .command('init')
-  .description('Initialize Reskill in the current directory')
-  .action(initCommand);
-
-program
-  .command('watch')
-  .description('Watch for changes and incrementally refine skills (Pro)')
-  .action(watchCommand);
-
-// Load config or exit
-try {
-  loadConfig();
-} catch {
-  // Only error if running a command that needs config.
-  // We'll handle this check inside actions or just let it fail gracefully if strict.
-  // For now, let's allow the CLI to start so help works, but warn.
+  app.start();
 }
 
-program
-  .command('evolve')
-  .description('Full cycle: Explore -> Strategize -> Execute')
-  .action(evolveCommand);
-
-program
-  .command('refine <skillName> <modulePath>')
-  .description('Manual single-skill refinement')
-  .action(refineCommand);
-
-program.parse();
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main();
+}

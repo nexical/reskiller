@@ -1,3 +1,4 @@
+import { BaseCommand } from '@nexical/cli-core';
 import { loadConfig } from '../config.js';
 import { ensureSymlinks } from '../core/Symlinker.js';
 import { Explorer } from '../core/Explorer.js';
@@ -16,78 +17,84 @@ import * as fs from 'node:fs';
 
 const TMP_DIR = '.agent/tmp/reskill';
 
-export async function evolveCommand() {
-  let config;
-  try {
-    config = loadConfig();
-  } catch {
-    console.error('❌ Missing reskill.config.json. Run "reskill init" first.');
-    process.exit(1);
-    return; // Reachable only if we mock process.exit
-  }
+export default class EvolveCommand extends BaseCommand {
+  static description = 'Full cycle: Explore -> Strategize -> Execute';
 
-  ensureTmpDir();
+  async run() {
+    let config;
+    try {
+      config = loadConfig();
+    } catch {
+      this.error('❌ Missing reskill.config.json. Run "reskill init" first.');
+      process.exit(1);
+      return; // Reachable only if we mock process.exit
+    }
 
-  // Ensure symlinks are set up
-  ensureSymlinks(config);
+    ensureTmpDir();
 
-  // 1. Explore
-  // Use config for platformDirs and moduleDirs
-  const { platformDirs, moduleDirs } = config.input;
+    // Ensure symlinks are set up
+    ensureSymlinks(config);
 
-  const explorer = new Explorer(moduleDirs, platformDirs, config.constitution, TMP_DIR);
-  const knowledgeGraph = await explorer.discover();
+    // 1. Explore
+    // Use config for platformDirs and moduleDirs
+    const { platformDirs, moduleDirs } = config.input;
 
-  // 2. Strategize
-  const architect = new Architect(config.skillsDir, TMP_DIR);
-  const plan = await architect.strategize(knowledgeGraph);
+    const explorer = new Explorer(moduleDirs, platformDirs, config.constitution, TMP_DIR);
+    const knowledgeGraph = await explorer.discover();
 
-  console.info('\n📋 Skill Plan Proposed by Architect:');
-  console.info(JSON.stringify(plan, null, 2));
+    // 2. Strategize
+    const architect = new Architect(config.skillsDir, TMP_DIR);
+    const plan = await architect.strategize(knowledgeGraph);
 
-  // 3. Execute Loop
-  console.info('\n🚀 Executing Skill Evolution Plan...');
+    this.info('\n📋 Skill Plan Proposed by Architect:');
+    this.info(JSON.stringify(plan, null, 2));
 
-  for (const item of plan.plan) {
-    if (item.type === 'create_skill' || item.type === 'update_skill') {
-      const skillName = item.target_skill || item.name;
-      const modulePath = item.exemplar_module;
+    // 3. Execute Loop
+    this.info('\n🚀 Executing Skill Evolution Plan...');
 
-      if (!skillName) {
-        console.warn('⚠️  Skipping item: missing skill name', item);
-        continue;
-      }
+    for (const item of plan.plan) {
+      if (item.type === 'create_skill' || item.type === 'update_skill') {
+        const skillName = item.target_skill || item.name;
+        const modulePath = item.exemplar_module;
 
-      if (!modulePath) {
-        console.warn(`⚠️  Skipping ${skillName}: missing exemplar module (truth path)`, item);
-        continue;
-      }
+        if (!skillName) {
+          this.warn(`⚠️  Skipping item: missing skill name ${JSON.stringify(item)}`);
+          continue;
+        }
 
-      const target: Target = {
-        name: skillName,
-        skillPath: path.join(config.skillsDir, skillName),
-        truthPath: modulePath,
-      };
+        if (!modulePath) {
+          this.warn(
+            `⚠️  Skipping ${skillName}: missing exemplar module (truth path) ${JSON.stringify(item)}`,
+          );
+          continue;
+        }
 
-      // Ensure skill directory exists
-      if (!fs.existsSync(target.skillPath)) {
-        fs.mkdirSync(target.skillPath, { recursive: true });
-      }
+        const target: Target = {
+          name: skillName,
+          skillPath: path.join(config.skillsDir, skillName),
+          truthPath: modulePath,
+        };
 
-      try {
-        const canonFile = stageAuditor(target, config);
-        const driftFile = stageCritic(target, canonFile, config);
-        await hooks.onDriftDetected(target, driftFile);
+        // Ensure skill directory exists
+        if (!fs.existsSync(target.skillPath)) {
+          fs.mkdirSync(target.skillPath, { recursive: true });
+        }
 
-        stageInstructor(target, canonFile, driftFile, config);
-        await hooks.onSkillUpdated(target);
-      } catch (error) {
-        console.error(`❌ Failed to evolve skill ${skillName}:`, error);
+        try {
+          const canonFile = stageAuditor(target, config);
+          const driftFile = stageCritic(target, canonFile, config);
+          await hooks.onDriftDetected(target, driftFile);
+
+          stageInstructor(target, canonFile, driftFile, config);
+          await hooks.onSkillUpdated(target);
+        } catch (error) {
+          this.error(`❌ Failed to evolve skill ${skillName}: ${error}`);
+        }
       }
     }
-  }
 
-  console.info('\n📚 Updating Context Files...');
-  await updateContextFiles(config);
-  console.info('✅ Context files updated.');
+    this.info('\n📚 Updating Context Files...');
+    await updateContextFiles(config);
+    this.success('✅ Context files updated.');
+  }
 }
