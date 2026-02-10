@@ -17,9 +17,11 @@ describe('config', () => {
     const validConfig = {
       skillsDir: 'custom-skills',
       constitution: { architecture: 'Arch' },
-      input: {
-        platformDirs: [{ name: 'core', path: 'core' }],
-        moduleDirs: ['modules'],
+      discovery: {
+        root: '.',
+        markers: ['.skills'],
+        ignore: ['node_modules'],
+        depth: 5,
       },
       outputs: {
         contextFiles: ['ctx.md'],
@@ -44,10 +46,6 @@ describe('config', () => {
   it('should use default values where applicable', () => {
     const minimalConfig = {
       constitution: { architecture: 'Arch' },
-      input: {
-        platformDirs: [],
-        moduleDirs: [],
-      },
       outputs: {
         contextFiles: [],
       },
@@ -58,15 +56,15 @@ describe('config', () => {
 
     const config = loadConfig(mockCwd);
     expect(config.skillsDir).toBe('skills');
+    expect(config.discovery.root).toBe('.');
   });
 
   it('should use default cwd if not provided', () => {
     const validConfig = {
       skillsDir: 'custom-skills',
       constitution: { architecture: 'Arch' },
-      input: {
-        platformDirs: [{ name: 'core', path: 'core' }],
-        moduleDirs: ['modules'],
+      discovery: {
+        root: '.',
       },
       outputs: {
         contextFiles: ['ctx.md'],
@@ -76,11 +74,6 @@ describe('config', () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(validConfig));
 
-    // We can't easily assert on process.cwd() usage without spying on path.join or fs calls with process.cwd()
-    // But we can ensure it doesn't throw and loads config expected at process.cwd()
-
-    // Mock process.cwd to return our mockCwd
-    // Note: vitest globals might make this tricky, but let's try
     const spy = vi.spyOn(process, 'cwd').mockReturnValue(mockCwd);
 
     const config = loadConfig();

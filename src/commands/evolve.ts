@@ -3,6 +3,8 @@ import { loadConfig } from '../config.js';
 import { ensureSymlinks } from '../core/Symlinker.js';
 import { Explorer } from '../core/Explorer.js';
 import { Architect } from '../core/Architect.js';
+import { ProjectScanner } from '../core/ProjectScanner.js';
+import { Bundler } from '../core/Bundler.js';
 import { hooks } from '../core/Hooks.js';
 import {
   ensureTmpDir,
@@ -27,22 +29,37 @@ export default class EvolveCommand extends BaseCommand {
     } catch {
       this.error('❌ Missing reskill.config.json. Run "reskill init" first.');
       process.exit(1);
-      return; // Reachable only if we mock process.exit
+      return;
     }
 
     ensureTmpDir();
 
-    // Ensure symlinks are set up
-    ensureSymlinks(config);
+    // 0. Discovery & Bundling
+    this.info('🔭 Discovering projects and bundling skills...');
+    const projectScanner = new ProjectScanner(config);
+    const projects = await projectScanner.scan();
+
+    this.info(`✅ Found ${projects.length} projects.`);
+    for (const p of projects) {
+      this.info(`   - ${p.name} (${path.relative(process.cwd(), p.path)})`);
+    }
+
+    const bundler = new Bundler(config);
+    await bundler.bundle(projects);
+    const bundleDir = bundler.getBundleDir();
+
+    // Ensure editor symlinks point to the BUNDLED skills now
+    ensureSymlinks(config, process.cwd(), bundleDir);
 
     // 1. Explore
-    // Use config for platformDirs and moduleDirs
-    const { platformDirs, moduleDirs } = config.input;
-
-    const explorer = new Explorer(moduleDirs, platformDirs, config.constitution, TMP_DIR);
+    const explorer = new Explorer(projects, config.constitution, TMP_DIR);
     const knowledgeGraph = await explorer.discover();
 
     // 2. Strategize
+    // Architect should probably look at the BUNDLED skills now, or strictly the source ones?
+    // If it strategizes to CREATE skills, it should create them in the global skillsDir or local project skills?
+    // For now, let's keep it using config.skillsDir (Global) to avoid breaking the "Architect" logic which might trigger file creations.
+    // If we want distributed creation, that's a bigger change.
     const architect = new Architect(config.skillsDir, TMP_DIR);
     const plan = await architect.strategize(knowledgeGraph);
 

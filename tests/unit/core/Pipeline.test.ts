@@ -8,6 +8,7 @@ import {
 } from '../../../src/core/Pipeline.js';
 import { AgentRunner } from '../../../src/agents/AgentRunner.js';
 import * as fs from 'node:fs';
+import { ReskillConfig } from '../../../src/config.js';
 
 vi.mock('node:fs');
 vi.mock('../../../src/agents/AgentRunner.js');
@@ -18,16 +19,16 @@ describe('Pipeline', () => {
     outputs: {
       contextFiles: ['/mock/context.md'],
     },
-    constitution: {},
+    constitution: { architecture: 'Test' },
   };
 
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(fs.existsSync).mockReturnValue(true);
-    vi.mocked(fs.mkdirSync).mockImplementation(() => ({}) as any);
+    vi.mocked(fs.mkdirSync).mockImplementation(() => undefined);
     vi.mocked(fs.unlinkSync).mockImplementation(() => {});
     vi.mocked(fs.writeFileSync).mockImplementation(() => {});
-    vi.mocked(fs.readdirSync).mockReturnValue([]);
+    vi.mocked(fs.readdirSync).mockReturnValue([] as unknown as fs.Dirent[]);
   });
 
   describe('ensureTmpDir', () => {
@@ -44,7 +45,7 @@ describe('Pipeline', () => {
     const target = { name: 'Test Skill', skillPath: '/skill/path', truthPath: '/truth/path' };
 
     it('stageAuditor should call AgentRunner', () => {
-      const result = stageAuditor(target, mockConfig as any);
+      const result = stageAuditor(target, mockConfig as unknown as ReskillConfig);
       expect(AgentRunner.run).toHaveBeenCalledWith(
         'Auditor',
         'agents/auditor.md',
@@ -54,7 +55,7 @@ describe('Pipeline', () => {
     });
 
     it('stageCritic should call AgentRunner', () => {
-      stageCritic(target, 'canon.json', mockConfig as any);
+      stageCritic(target, 'canon.json', mockConfig as unknown as ReskillConfig);
       expect(AgentRunner.run).toHaveBeenCalledWith(
         'Critic',
         'agents/critic.md',
@@ -63,7 +64,7 @@ describe('Pipeline', () => {
     });
 
     it('stageInstructor should call AgentRunner', () => {
-      stageInstructor(target, 'canon.json', 'drift.md', mockConfig as any);
+      stageInstructor(target, 'canon.json', 'drift.md', mockConfig as unknown as ReskillConfig);
       expect(AgentRunner.run).toHaveBeenCalledWith(
         'Instructor',
         'agents/instructor.md',
@@ -75,20 +76,20 @@ describe('Pipeline', () => {
   describe('updateContextFiles', () => {
     it('should update context files with skill index', async () => {
       // Mock readdirSync for skills
-      vi.mocked(fs.readdirSync).mockImplementation(((dir: unknown) => {
-        if ((dir as string) === mockConfig.skillsDir) return ['skill1'];
-        return [];
-      }) as unknown as (path: fs.PathLike) => any);
-      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as any);
+      vi.mocked(fs.readdirSync).mockImplementation(((dir: string) => {
+        if (dir === mockConfig.skillsDir) return ['skill1'] as unknown as fs.Dirent[];
+        return [] as unknown as fs.Dirent[];
+      }) as unknown as typeof fs.readdirSync);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as unknown as fs.Stats);
       vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockImplementation(((p: unknown) => {
-        const pathStr = p as string;
+      vi.mocked(fs.readFileSync).mockImplementation(((p: string | Buffer | URL) => {
+        const pathStr = p.toString();
         if (pathStr.endsWith('SKILL.md')) return 'description: Test Skill Description';
         if (pathStr.endsWith('context.md')) return 'Old Content';
         return '';
-      }) as unknown as (path: fs.PathLike | number) => any);
+      }) as unknown as typeof fs.readFileSync);
 
-      await updateContextFiles(mockConfig as any);
+      await updateContextFiles(mockConfig as unknown as ReskillConfig);
 
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         '/mock/context.md',
@@ -103,14 +104,14 @@ describe('Pipeline', () => {
     });
 
     it('should replace existing <skills> block', async () => {
-      vi.mocked(fs.readdirSync).mockReturnValue([] as any);
+      vi.mocked(fs.readdirSync).mockReturnValue([] as unknown as fs.Dirent[]);
       vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockImplementation(((p: unknown) => {
-        if ((p as string).endsWith('context.md')) return 'Pre <skills>old</skills> Post';
+      vi.mocked(fs.readFileSync).mockImplementation(((p: string | Buffer | URL) => {
+        if (p.toString().endsWith('context.md')) return 'Pre <skills>old</skills> Post';
         return '';
-      }) as unknown as (path: fs.PathLike | number) => any);
+      }) as unknown as typeof fs.readFileSync);
 
-      await updateContextFiles(mockConfig as any);
+      await updateContextFiles(mockConfig as unknown as ReskillConfig);
 
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         '/mock/context.md',
@@ -120,14 +121,14 @@ describe('Pipeline', () => {
     });
 
     it('should handle legacy section', async () => {
-      vi.mocked(fs.readdirSync).mockReturnValue([] as any);
+      vi.mocked(fs.readdirSync).mockReturnValue([] as unknown as fs.Dirent[]);
       vi.mocked(fs.existsSync).mockReturnValue(true);
-      vi.mocked(fs.readFileSync).mockImplementation(((p: unknown) => {
-        if ((p as string).endsWith('context.md')) return 'Pre \n## 6. Skill Index\nOld\n## 7. Next';
+      vi.mocked(fs.readFileSync).mockImplementation(((p: string | Buffer | URL) => {
+        if (p.toString().endsWith('context.md')) return 'Pre \n## 6. Skill Index\nOld\n## 7. Next';
         return '';
-      }) as unknown as (path: fs.PathLike | number) => any);
+      }) as unknown as typeof fs.readFileSync);
 
-      await updateContextFiles(mockConfig as any);
+      await updateContextFiles(mockConfig as unknown as ReskillConfig);
 
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         '/mock/context.md',
@@ -140,7 +141,7 @@ describe('Pipeline', () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       vi.mocked(fs.existsSync).mockReturnValue(false); // No context file
 
-      await updateContextFiles(mockConfig as any);
+      await updateContextFiles(mockConfig as unknown as ReskillConfig);
 
       expect(warnSpy).toHaveBeenCalled();
       warnSpy.mockRestore();

@@ -2,11 +2,17 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { ReskillConfig } from '../config.js';
 
-export function ensureSymlinks(config: ReskillConfig, cwd: string = process.cwd()) {
+export function ensureSymlinks(
+  config: ReskillConfig,
+  cwd: string = process.cwd(),
+  targetDir?: string,
+) {
   const symlinks = config.outputs?.symlinks;
   if (!symlinks || symlinks.length === 0) return;
 
-  const skillsAbsPath = path.resolve(cwd, config.skillsDir);
+  const skillsAbsPath = targetDir
+    ? path.resolve(cwd, targetDir)
+    : path.resolve(cwd, config.skillsDir);
   let gitignoreUpdated = false;
   const gitignorePath = path.join(cwd, '.gitignore');
   let gitignoreContent = '';
@@ -32,7 +38,7 @@ export function ensureSymlinks(config: ReskillConfig, cwd: string = process.cwd(
       try {
         const relativeTarget = path.relative(linkDir, skillsAbsPath);
         fs.symlinkSync(relativeTarget, linkAbsPath, 'dir');
-        console.info(`🔗 Created symlink: ${linkTarget} -> ${config.skillsDir}`);
+        console.info(`🔗 Created symlink: ${linkTarget} -> ${targetDir || config.skillsDir}`);
       } catch (e) {
         console.error(`❌ Failed to create symlink at ${linkTarget}:`, e);
       }

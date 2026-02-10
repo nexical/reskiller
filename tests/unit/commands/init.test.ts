@@ -25,14 +25,12 @@ describe('InitCommand', () => {
     command.error = vi.fn();
 
     vi.mocked(inquirer.prompt).mockResolvedValue({
-      platformPath: 'core/src',
-      modulePatterns: 'modules/*',
       skillsDir: 'skills',
       archDoc: 'arch.md',
       symlinks: [],
     });
     vi.mocked(fs.existsSync).mockReturnValue(false); // Nothing exists initially
-    vi.mocked(fs.mkdirSync).mockImplementation(() => ({}) as unknown as string | undefined);
+    vi.mocked(fs.mkdirSync).mockImplementation(() => undefined);
     vi.mocked(fs.writeFileSync).mockImplementation(() => {});
     vi.mocked(fs.cpSync).mockImplementation(() => {});
   });
@@ -43,7 +41,7 @@ describe('InitCommand', () => {
     expect(inquirer.prompt).toHaveBeenCalled();
     expect(fs.writeFileSync).toHaveBeenCalledWith(
       'reskill.config.json',
-      expect.stringContaining('core/src'),
+      expect.stringContaining('"root": "."'),
     );
     expect(fs.mkdirSync).toHaveBeenCalledWith('skills', expect.any(Object));
     expect(fs.mkdirSync).toHaveBeenCalledWith('.agent/prompts', expect.any(Object));
@@ -51,8 +49,8 @@ describe('InitCommand', () => {
   });
 
   it('should copy prompts if found', async () => {
-    vi.mocked(fs.existsSync).mockImplementation((p: unknown) => {
-      const pathStr = p as string;
+    vi.mocked(fs.existsSync).mockImplementation((p: string | Buffer | URL) => {
+      const pathStr = p.toString();
       // Mock that source prompts exist
       if (pathStr.includes('prompts') && !pathStr.includes('.agent')) return true;
       return false;
@@ -65,13 +63,9 @@ describe('InitCommand', () => {
   });
 
   it('should fallback to dist prompts if src not found', async () => {
-    vi.mocked(fs.existsSync).mockImplementation(() => {
-      return false;
-    });
-
     let callCount = 0;
-    vi.mocked(fs.existsSync).mockImplementation((p: unknown) => {
-      const pathStr = p as string;
+    vi.mocked(fs.existsSync).mockImplementation((p: string | Buffer | URL) => {
+      const pathStr = p.toString();
       if (
         pathStr.includes('prompts') &&
         !pathStr.includes('.agent') &&

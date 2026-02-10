@@ -15,20 +15,8 @@ export default class InitCommand extends BaseCommand {
     const answers = await inquirer.prompt([
       {
         type: 'input',
-        name: 'platformPath',
-        message: 'Where is your core library code (Kernel)?',
-        default: 'core/src',
-      },
-      {
-        type: 'input',
-        name: 'modulePatterns',
-        message: 'Where should we look for modules (User Space)? (comma separated globs)',
-        default: 'apps/*/modules',
-      },
-      {
-        type: 'input',
         name: 'skillsDir',
-        message: 'Where do you want to store skills?',
+        message: 'Where do you want to store global skills?',
         default: 'skills',
       },
       {
@@ -56,11 +44,13 @@ export default class InitCommand extends BaseCommand {
       skillsDir: answers.skillsDir,
       constitution: {
         architecture: answers.archDoc,
-        patterns: 'core/MODULES.md', // Default, maybe ask?
+        patterns: 'core/MODULES.md',
       },
-      input: {
-        platformDirs: [{ name: 'core', path: answers.platformPath }],
-        moduleDirs: answers.modulePatterns.split(',').map((s: string) => s.trim()),
+      discovery: {
+        root: '.',
+        markers: ['.skills'],
+        ignore: ['node_modules', 'dist', '.git'],
+        depth: 5,
       },
       outputs: {
         contextFiles: ['GEMINI.md', '.cursorrules'],

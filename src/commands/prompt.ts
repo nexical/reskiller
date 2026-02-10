@@ -17,6 +17,13 @@ interface GeminiResult {
   output: string;
 }
 
+interface PromptCommandOptions {
+  promptName: string;
+  models: string;
+  interactive: boolean;
+  [key: string]: unknown;
+}
+
 export default class PromptCommand extends BaseCommand {
   static description = 'Run an AI prompt against the codebase';
 
@@ -43,8 +50,7 @@ export default class PromptCommand extends BaseCommand {
     ],
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async run(options: any) {
+  async run(options: PromptCommandOptions) {
     const { promptName, models: modelsArg, interactive, ...rest } = options;
     const argv = { ...options, ...rest }; // Pass all options as variables
 

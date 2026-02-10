@@ -8,10 +8,14 @@ export const ReskillConfigSchema = z.object({
     architecture: z.string(),
     patterns: z.string().optional(),
   }),
-  input: z.object({
-    platformDirs: z.array(z.object({ name: z.string(), path: z.string() })),
-    moduleDirs: z.array(z.string()),
-  }),
+  discovery: z
+    .object({
+      root: z.string().default('.'),
+      markers: z.array(z.string()).default(['.skills']),
+      ignore: z.array(z.string()).default(['node_modules', 'dist', '.git']),
+      depth: z.number().default(5),
+    })
+    .default({}),
   licenseKey: z.string().optional(),
   outputs: z.object({
     contextFiles: z.array(z.string()),

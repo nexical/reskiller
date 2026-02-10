@@ -6,98 +6,79 @@ vi.mock('node:fs');
 vi.mock('../../../src/agents/AgentRunner');
 
 describe('Explorer', () => {
-  const mockParams = {
-    moduleDirs: ['/mock/modules'],
-    platformDirs: [{ name: 'core', path: '/mock/core' }],
-    constitution: { architecture: 'Test Arch' },
-    tmpDir: '/mock/tmp',
-  };
+  const mockProjects = [
+    { name: 'core', path: '/mock/core', skillDir: '/mock/core/.skills' },
+    { name: 'module-a', path: '/mock/module-a', skillDir: '/mock/module-a/.skills' },
+  ];
+  const mockConstitution = { architecture: 'Test Arch' };
+  const mockTmpDir = '/mock/tmp';
 
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(fs.readdirSync).mockReturnValue([]);
-    vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as any);
+    vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as unknown as fs.Stats);
   });
 
   it('should instantiate correctly', () => {
-    const explorer = new Explorer(
-      mockParams.moduleDirs,
-      mockParams.platformDirs,
-      mockParams.constitution,
-      mockParams.tmpDir,
-    );
+    const explorer = new Explorer(mockProjects, mockConstitution, mockTmpDir);
     expect(explorer).toBeDefined();
   });
 
-  it('should handle missing platform directories', async () => {
+  it('should handle missing project directories', async () => {
     const explorer = new Explorer(
-      [],
-      [{ name: 'missing', path: '/missing/path' }],
-      mockParams.constitution,
-      mockParams.tmpDir,
+      [{ name: 'missing', path: '/missing/path', skillDir: '/missing/path/.skills' }],
+      mockConstitution,
+      mockTmpDir,
     );
 
     vi.mocked(fs.existsSync).mockReturnValue(false);
-    // readdirSync shouldn't be called for missing dir
 
     await explorer.discover();
 
     expect(fs.writeFileSync).toHaveBeenCalledWith(
       expect.stringContaining('modules-index.json'),
-      expect.stringContaining('"error": "Directory not found"'),
+      expect.stringContaining('"files": []'),
     );
-  });
-
-  it('should handle missing module directories', async () => {
-    const explorer = new Explorer(
-      ['/missing/modules'],
-      [],
-      mockParams.constitution,
-      mockParams.tmpDir,
-    );
-
-    vi.mocked(fs.existsSync).mockImplementation(
-      ((path: unknown) => (path as string) !== '/missing/modules') as unknown as (
-        path: fs.PathLike,
-      ) => boolean,
-    );
-
-    await explorer.discover();
-
-    // Verify we proceeded without crashing
-    expect(fs.writeFileSync).toHaveBeenCalled();
   });
 
   it('should recursively list files ignoring excludes', async () => {
     const explorer = new Explorer(
-      [],
-      [{ name: 'core', path: '/mock/core' }],
-      mockParams.constitution,
-      mockParams.tmpDir,
+      [{ name: 'core', path: '/mock/core', skillDir: '/mock/core/.skills' }],
+      mockConstitution,
+      mockTmpDir,
     );
 
     vi.mocked(fs.existsSync).mockReturnValue(true);
     // Mock readdirSync for recursive structure
-    vi.mocked(fs.readdirSync).mockImplementation(((dir: unknown) => {
-      const dirStr = dir as string;
-      if (dirStr === '/mock/core') return ['file1.ts', 'subdir', 'node_modules', '.git', 'dist'];
-      if (dirStr === '/mock/core/subdir') return ['file2.ts'];
-      return [];
-    }) as unknown as (path: fs.PathLike) => any);
+    vi.mocked(fs.readdirSync).mockImplementation(((dir: string) => {
+      const dirStr = dir;
+      if (dirStr === '/mock/core')
+        return [
+          'file1.ts',
+          'subdir',
+          'node_modules',
+          '.git',
+          'dist',
+          '.skills',
+        ] as unknown as fs.Dirent[];
+      if (dirStr === '/mock/core/subdir') return ['file2.ts'] as unknown as fs.Dirent[];
+      return [] as unknown as fs.Dirent[];
+    }) as unknown as typeof fs.readdirSync);
 
-    vi.mocked(fs.statSync).mockImplementation(((filePath: unknown) => {
-      const pathStr = filePath as string;
+    vi.mocked(fs.statSync).mockImplementation(((filePath: string) => {
+      const pathStr = filePath;
       if (
         pathStr.endsWith('subdir') ||
         pathStr.endsWith('node_modules') ||
         pathStr.endsWith('dist') ||
-        pathStr.endsWith('.git')
+        pathStr.endsWith('.git') ||
+        pathStr.endsWith('.skills')
       ) {
-        return { isDirectory: () => true };
+        return { isDirectory: () => true } as fs.Stats;
       }
-      return { isDirectory: () => false };
-    }) as unknown as (path: fs.PathLike) => any);
+      return { isDirectory: () => false } as fs.Stats;
+    }) as unknown as typeof fs.statSync);
 
     await explorer.discover();
 
@@ -109,47 +90,14 @@ describe('Explorer', () => {
       expect.stringContaining('modules-index.json'),
       expect.stringContaining('file2.ts'),
     );
-    // Should not contain ignored directories
+    // Should not contain ignored directories or markers
     expect(fs.writeFileSync).not.toHaveBeenCalledWith(
       expect.stringContaining('modules-index.json'),
       expect.stringContaining('node_modules'),
     );
-  });
-
-  it('should return empty list if directory does not exist in listFiles', async () => {
-    // modifying listFiles directly is hard as it is private,
-    // but we can trigger it via scanPlatform if we make existsSync return true first then false inside listFiles?
-    // Actually listFiles checks existsSync right at start.
-    // scanPlatform calls listFiles only if dir exists.
-    // But what if a subdir disappears during recursion?
-
-    const explorer = new Explorer(
-      [],
-      [{ name: 'flaky', path: '/mock/flaky' }],
-      mockParams.constitution,
-      mockParams.tmpDir,
+    expect(fs.writeFileSync).not.toHaveBeenCalledWith(
+      expect.stringContaining('modules-index.json'),
+      expect.stringContaining('.skills'),
     );
-
-    // First check in scanPlatform returns true
-    vi.mocked(fs.existsSync).mockImplementation(((path: unknown) => {
-      const pathStr = path as string;
-      if (pathStr === '/mock/flaky') return true;
-      // When listFiles calls it
-      if (pathStr === '/mock/flaky/disappears') return false;
-      return true;
-    }) as unknown as (path: fs.PathLike) => boolean);
-
-    vi.mocked(fs.readdirSync).mockImplementation(((dir: unknown) => {
-      const dirStr = dir as string;
-      if (dirStr === '/mock/flaky') return ['disappears'];
-      // when listing disappears, it returns empty? No, listFiles checks existsSync first.
-      return [];
-    }) as unknown as (path: fs.PathLike) => any);
-
-    vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as any);
-
-    await explorer.discover();
-    // Just ensure no crash
-    expect(fs.writeFileSync).toHaveBeenCalled();
   });
 });

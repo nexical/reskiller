@@ -1,15 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Architect } from '../../../src/core/Architect.js'; // Ensure .js extension for node next resolution if needed, though .ts might work in vitest
-// Correction: The lint error suggested .js, so I'll use it to be safe, but ts-node/vitest usually handles .ts.
-// Actually source is .ts. Let's stick to import from source directly if possible, or follow the pattern.
-// Explorer test used .js import in my previous read? No, it was .js in my memory or ... wait, I need to check if I updated imports in Explorer.test.ts.
-// Explorer.test.ts used .js in the file view I saw earlier?
-// "import { Explorer } from '../../../src/core/Explorer.js';" -> Yes, lines 2 in Explorer.test.ts.
+import { Architect } from '../../../src/core/Architect.js';
 import { AgentRunner } from '../../../src/agents/AgentRunner.js';
 import * as fs from 'node:fs';
 
 vi.mock('node:fs');
-vi.mock('../../../src/agents/AgentRunner.js'); // Mock the module
+vi.mock('../../../src/agents/AgentRunner.js');
 
 describe('Architect', () => {
   const mockSkillsDir = '/mock/skills';
@@ -19,10 +14,10 @@ describe('Architect', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(fs.existsSync).mockReturnValue(true);
-    vi.mocked(fs.mkdirSync).mockImplementation(() => ({}) as any);
+    vi.mocked(fs.mkdirSync).mockImplementation(() => undefined);
     vi.mocked(fs.writeFileSync).mockImplementation(() => {});
     vi.mocked(fs.readFileSync).mockReturnValue('{}');
-    vi.mocked(fs.readdirSync).mockReturnValue([] as any);
+    vi.mocked(fs.readdirSync).mockReturnValue([] as unknown as fs.Dirent[]);
   });
 
   it('should instantiate correctly', () => {
@@ -34,19 +29,16 @@ describe('Architect', () => {
     const architect = new Architect(mockSkillsDir, mockTmpDir);
     const mockPlan = { plan: ['skill1'] };
 
-    vi.mocked(fs.readdirSync).mockImplementation(((dir: unknown) => {
-      if ((dir as string) === mockSkillsDir)
-        return [{ name: 'existing-skill', isDirectory: () => true }];
-      return [];
-    }) as unknown as any);
-
     // Mock readdirSync withFileTypes result
-    vi.mocked(fs.readdirSync).mockImplementation(((dir: unknown, opts: unknown) => {
-      if ((dir as string) === mockSkillsDir && (opts as any)?.withFileTypes) {
-        return [{ name: 'existing-skill', isDirectory: () => true }];
+    vi.mocked(fs.readdirSync).mockImplementation(((
+      dir: string,
+      opts: { withFileTypes?: boolean },
+    ) => {
+      if (dir === mockSkillsDir && opts?.withFileTypes) {
+        return [{ name: 'existing-skill', isDirectory: () => true }] as unknown as fs.Dirent[];
       }
-      return [];
-    }) as unknown as any);
+      return [] as unknown as fs.Dirent[];
+    }) as unknown as typeof fs.readdirSync);
 
     vi.mocked(fs.existsSync).mockReturnValue(true); // Output file exists
     vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify(mockPlan));
@@ -70,10 +62,10 @@ describe('Architect', () => {
   it('should return empty plan if output file not found', async () => {
     const architect = new Architect(mockSkillsDir, mockTmpDir);
 
-    vi.mocked(fs.existsSync).mockImplementation(((p: unknown) => {
-      if ((p as string).endsWith('skill-plan.json')) return false;
+    vi.mocked(fs.existsSync).mockImplementation(((p: string) => {
+      if (p.endsWith('skill-plan.json')) return false;
       return true;
-    }) as unknown as (path: fs.PathLike) => boolean);
+    }) as unknown as typeof fs.existsSync);
 
     const result = await architect.strategize(mockGraphPath);
     expect(result).toEqual({ plan: [] });
@@ -96,15 +88,18 @@ describe('Architect', () => {
     const architect = new Architect(mockSkillsDir, mockTmpDir);
 
     vi.mocked(fs.existsSync).mockReturnValue(true);
-    vi.mocked(fs.readdirSync).mockImplementation(((dir: unknown, opts: unknown) => {
-      if ((dir as string) === mockSkillsDir && (opts as any)?.withFileTypes) {
+    vi.mocked(fs.readdirSync).mockImplementation(((
+      dir: string,
+      opts: { withFileTypes?: boolean },
+    ) => {
+      if (dir === mockSkillsDir && opts?.withFileTypes) {
         return [
           { name: 'good-skill', isDirectory: () => true },
           { name: 'README.md', isDirectory: () => false },
-        ];
+        ] as unknown as fs.Dirent[];
       }
-      return [];
-    }) as unknown as any);
+      return [] as unknown as fs.Dirent[];
+    }) as unknown as typeof fs.readdirSync);
 
     await architect.strategize(mockGraphPath);
 
