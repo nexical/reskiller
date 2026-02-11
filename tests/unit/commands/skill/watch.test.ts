@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import WatchCommand from '../../../src/commands/watch.js';
-import * as configMod from '../../../src/config.js';
+import WatchCommand from '../../../../src/commands/skill/watch.js';
+import * as configMod from '../../../../src/config.js';
 import chokidar from 'chokidar';
 import { CLI } from '@nexical/cli-core';
 
-vi.mock('../../../src/config.js');
+vi.mock('../../../../src/config.js');
 vi.mock('chokidar');
 
 // Mock CLI
@@ -109,7 +109,7 @@ describe('WatchCommand', () => {
   });
 
   it('should have hooks stubs', async () => {
-    const { hooks } = await import('../../../src/commands/watch.js');
+    const { hooks } = await import('../../../../src/commands/skill/watch.js');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await expect(hooks.onDriftDetected({} as unknown as any, 'file')).resolves.toBeUndefined();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

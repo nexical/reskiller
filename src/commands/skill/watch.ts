@@ -1,6 +1,6 @@
 import { BaseCommand } from '@nexical/cli-core';
-import { ReskillConfig, loadConfig } from '../config.js';
-import { Target } from '../types.js';
+import { ReskillConfig, loadConfig } from '../../config.js';
+import { Target } from '../../types.js';
 import chokidar from 'chokidar';
 
 // Hooks stub
@@ -37,16 +37,13 @@ export default class WatchCommand extends BaseCommand {
     }
     this.info('🔓 Pro License Verified. Starting Watcher...');
 
+    // Discover projects to watch
+    const { ProjectScanner } = await import('../../core/ProjectScanner.js');
+    const projectScanner = new ProjectScanner(config);
+    const projects = await projectScanner.scan();
+
     // Setup watcher
-    const watchPaths: string[] = [];
-
-    // Add platform dirs
-    config.input.platformDirs.forEach((pd) => watchPaths.push(pd.path));
-
-    // Add module dirs (resolving globs roughly or just passing globs if chokidar supports it)
-    // config.input.moduleDirs is array of strings (globs?)
-    // chokidar supports globs
-    watchPaths.push(...config.input.moduleDirs);
+    const watchPaths = projects.map((p) => p.path);
 
     this.info(`👀 Watching for changes in: ${JSON.stringify(watchPaths)}`);
 

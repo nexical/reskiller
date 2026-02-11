@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import InitCommand from '../../../src/commands/init.js';
+import InitCommand from '../../../../src/commands/skill/init.js';
 import inquirer from 'inquirer';
 import * as fs from 'node:fs';
 import { CLI } from '@nexical/cli-core';
@@ -60,27 +60,6 @@ describe('InitCommand', () => {
 
     expect(fs.cpSync).toHaveBeenCalled();
     expect(command.success).toHaveBeenCalledWith(expect.stringContaining('Copied default prompts'));
-  });
-
-  it('should fallback to dist prompts if src not found', async () => {
-    let callCount = 0;
-    vi.mocked(fs.existsSync).mockImplementation((p: string | Buffer | URL) => {
-      const pathStr = p.toString();
-      if (
-        pathStr.includes('prompts') &&
-        !pathStr.includes('.agent') &&
-        !pathStr.includes('.vscode')
-      ) {
-        callCount++;
-        if (callCount === 2) return true; // Dist path
-        return false; // Source path
-      }
-      return false;
-    });
-
-    await command.run();
-
-    expect(fs.cpSync).toHaveBeenCalled();
   });
 
   it('should warn if prompts not found', async () => {

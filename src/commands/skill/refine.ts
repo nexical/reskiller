@@ -1,14 +1,14 @@
 import { BaseCommand, type CommandDefinition } from '@nexical/cli-core';
-import { loadConfig } from '../config.js';
-import { ensureSymlinks } from '../core/Symlinker.js';
-import { hooks } from '../core/Hooks.js';
+import { loadConfig } from '../../config.js';
+import { ensureSymlinks } from '../../core/Symlinker.js';
+import { hooks } from '../../core/Hooks.js';
 import {
   ensureTmpDir,
   stageAuditor,
   stageCritic,
   stageInstructor,
   updateContextFiles,
-} from '../core/Pipeline.js';
+} from '../../core/Pipeline.js';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 

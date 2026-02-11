@@ -74,19 +74,9 @@ export default class InitCommand extends BaseCommand {
     }
 
     // Locate source prompts
-    // In dev: packages/reskill/src/commands/init.ts -> packages/reskill/prompts
-    // In dist: packages/reskill/dist/commands/init.js -> packages/reskill/dist/prompts
-    // We need to be careful about where we are.
-    // Assuming standard layout:
-    // src/commands/init.ts
-    // prompts/
-
-    // validation of path
-    let sourcePrompts = path.join(__dirname, '../../../prompts'); // dev
-    if (!fs.existsSync(sourcePrompts)) {
-      // try dist layout
-      sourcePrompts = path.join(__dirname, '../../prompts');
-    }
+    // From src/commands/skill/init.ts or dist/commands/skill/init.js,
+    // prompts are 3 levels up.
+    const sourcePrompts = path.join(__dirname, '../../../prompts');
 
     if (fs.existsSync(sourcePrompts)) {
       fs.cpSync(sourcePrompts, userPromptsDir, { recursive: true });

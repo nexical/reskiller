@@ -1,20 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import EvolveCommand from '../../../src/commands/evolve.js';
-import * as configMod from '../../../src/config.js';
-import { Explorer } from '../../../src/core/Explorer.js';
-import { Architect } from '../../../src/core/Architect.js';
-import { ProjectScanner } from '../../../src/core/ProjectScanner.js';
-import { Bundler } from '../../../src/core/Bundler.js';
-import * as Pipeline from '../../../src/core/Pipeline.js';
+import EvolveCommand from '../../../../src/commands/skill/evolve.js';
+import * as configMod from '../../../../src/config.js';
+import { Explorer } from '../../../../src/core/Explorer.js';
+import { Architect } from '../../../../src/core/Architect.js';
+import { ProjectScanner } from '../../../../src/core/ProjectScanner.js';
+import { Bundler } from '../../../../src/core/Bundler.js';
+import * as Pipeline from '../../../../src/core/Pipeline.js';
 import { CLI } from '@nexical/cli-core';
 
-vi.mock('../../../src/config.js');
-vi.mock('../../../src/core/Explorer.js');
-vi.mock('../../../src/core/Architect.js');
-vi.mock('../../../src/core/ProjectScanner.js');
-vi.mock('../../../src/core/Bundler.js');
-vi.mock('../../../src/core/Hooks.js');
-vi.mock('../../../src/core/Pipeline.js');
+vi.mock('../../../../src/config.js');
+vi.mock('../../../../src/core/Explorer.js');
+vi.mock('../../../../src/core/Architect.js');
+vi.mock('../../../../src/core/ProjectScanner.js');
+vi.mock('../../../../src/core/Bundler.js');
+vi.mock('../../../../src/core/Hooks.js');
+vi.mock('../../../../src/core/Pipeline.js');
 
 // Mock CLI
 const mockCli = {} as unknown as CLI;

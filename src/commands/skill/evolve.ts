@@ -1,19 +1,19 @@
 import { BaseCommand } from '@nexical/cli-core';
-import { loadConfig } from '../config.js';
-import { ensureSymlinks } from '../core/Symlinker.js';
-import { Explorer } from '../core/Explorer.js';
-import { Architect } from '../core/Architect.js';
-import { ProjectScanner } from '../core/ProjectScanner.js';
-import { Bundler } from '../core/Bundler.js';
-import { hooks } from '../core/Hooks.js';
+import { loadConfig } from '../../config.js';
+import { ensureSymlinks } from '../../core/Symlinker.js';
+import { Explorer } from '../../core/Explorer.js';
+import { Architect } from '../../core/Architect.js';
+import { ProjectScanner } from '../../core/ProjectScanner.js';
+import { Bundler } from '../../core/Bundler.js';
+import { hooks } from '../../core/Hooks.js';
 import {
   ensureTmpDir,
   stageAuditor,
   stageCritic,
   stageInstructor,
   updateContextFiles,
-} from '../core/Pipeline.js';
-import { Target } from '../types.js';
+} from '../../core/Pipeline.js';
+import { Target } from '../../types.js';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 

@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import RefineCommand from '../../../src/commands/refine.js';
-import * as configMod from '../../../src/config.js';
-import { hooks } from '../../../src/core/Hooks.js';
-import * as Pipeline from '../../../src/core/Pipeline.js';
+import RefineCommand from '../../../../src/commands/skill/refine.js';
+import * as configMod from '../../../../src/config.js';
+import { hooks } from '../../../../src/core/Hooks.js';
+import * as Pipeline from '../../../../src/core/Pipeline.js';
 import { CLI } from '@nexical/cli-core';
 
-vi.mock('../../../src/config.js');
-vi.mock('../../../src/core/Hooks.js');
-vi.mock('../../../src/core/Pipeline.js');
+vi.mock('../../../../src/config.js');
+vi.mock('../../../../src/core/Hooks.js');
+vi.mock('../../../../src/core/Pipeline.js');
 
 // Mock CLI
 const mockCli = {} as unknown as CLI;

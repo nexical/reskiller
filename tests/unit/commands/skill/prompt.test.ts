@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import PromptCommand from '../../../src/commands/prompt.js';
+import PromptCommand from '../../../../src/commands/skill/prompt.js';
 import * as fs from 'node:fs/promises';
 import { CLI } from '@nexical/cli-core';
 
