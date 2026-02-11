@@ -17,7 +17,7 @@ describe('Architect', () => {
     vi.mocked(fs.mkdirSync).mockImplementation(() => undefined);
     vi.mocked(fs.writeFileSync).mockImplementation(() => {});
     vi.mocked(fs.readFileSync).mockReturnValue('{}');
-    vi.mocked(fs.readdirSync).mockReturnValue([] as unknown as fs.Dirent[]);
+    vi.mocked(fs.readdirSync).mockReturnValue([]);
   });
 
   it('should instantiate correctly', () => {
@@ -35,9 +35,11 @@ describe('Architect', () => {
       opts: { withFileTypes?: boolean },
     ) => {
       if (dir === mockSkillsDir && opts?.withFileTypes) {
-        return [{ name: 'existing-skill', isDirectory: () => true }] as unknown as fs.Dirent[];
+        return [
+          { name: 'existing-skill', isDirectory: () => true },
+        ] as unknown as fs.Dirent<string>[];
       }
-      return [] as unknown as fs.Dirent[];
+      return [] as unknown as fs.Dirent<string>[];
     }) as unknown as typeof fs.readdirSync);
 
     vi.mocked(fs.existsSync).mockReturnValue(true); // Output file exists
@@ -96,9 +98,9 @@ describe('Architect', () => {
         return [
           { name: 'good-skill', isDirectory: () => true },
           { name: 'README.md', isDirectory: () => false },
-        ] as unknown as fs.Dirent[];
+        ] as unknown as fs.Dirent<string>[];
       }
-      return [] as unknown as fs.Dirent[];
+      return [] as unknown as fs.Dirent<string>[];
     }) as unknown as typeof fs.readdirSync);
 
     await architect.strategize(mockGraphPath);

@@ -28,7 +28,7 @@ describe('Pipeline', () => {
     vi.mocked(fs.mkdirSync).mockImplementation(() => undefined);
     vi.mocked(fs.unlinkSync).mockImplementation(() => {});
     vi.mocked(fs.writeFileSync).mockImplementation(() => {});
-    vi.mocked(fs.readdirSync).mockReturnValue([] as unknown as fs.Dirent[]);
+    vi.mocked(fs.readdirSync).mockReturnValue([]);
   });
 
   describe('ensureTmpDir', () => {
@@ -77,8 +77,8 @@ describe('Pipeline', () => {
     it('should update context files with skill index', async () => {
       // Mock readdirSync for skills
       vi.mocked(fs.readdirSync).mockImplementation(((dir: string) => {
-        if (dir === mockConfig.skillsDir) return ['skill1'] as unknown as fs.Dirent[];
-        return [] as unknown as fs.Dirent[];
+        if (dir === mockConfig.skillsDir) return ['skill1'];
+        return [];
       }) as unknown as typeof fs.readdirSync);
       vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as unknown as fs.Stats);
       vi.mocked(fs.existsSync).mockReturnValue(true);
@@ -104,7 +104,7 @@ describe('Pipeline', () => {
     });
 
     it('should replace existing <skills> block', async () => {
-      vi.mocked(fs.readdirSync).mockReturnValue([] as unknown as fs.Dirent[]);
+      vi.mocked(fs.readdirSync).mockReturnValue([]);
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockImplementation(((p: string | Buffer | URL) => {
         if (p.toString().endsWith('context.md')) return 'Pre <skills>old</skills> Post';
@@ -121,7 +121,7 @@ describe('Pipeline', () => {
     });
 
     it('should handle legacy section', async () => {
-      vi.mocked(fs.readdirSync).mockReturnValue([] as unknown as fs.Dirent[]);
+      vi.mocked(fs.readdirSync).mockReturnValue([]);
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockImplementation(((p: string | Buffer | URL) => {
         if (p.toString().endsWith('context.md')) return 'Pre \n## 6. Skill Index\nOld\n## 7. Next';

@@ -2,10 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import WatchCommand from '../../../../src/commands/skill/watch.js';
 import * as configMod from '../../../../src/config.js';
 import chokidar from 'chokidar';
+import { ProjectScanner } from '../../../../src/core/ProjectScanner.js';
 import { CLI } from '@nexical/cli-core';
 
 vi.mock('../../../../src/config.js');
 vi.mock('chokidar');
+vi.mock('../../../../src/core/ProjectScanner.js');
 
 // Mock CLI
 const mockCli = {} as unknown as CLI;
@@ -13,6 +15,7 @@ const mockCli = {} as unknown as CLI;
 describe('WatchCommand', () => {
   let command: WatchCommand;
   const mockConfig = {
+    discovery: { root: '.', markers: ['.skills'], ignore: [], depth: 1 },
     input: {
       platformDirs: [{ path: 'core' }],
       moduleDirs: ['modules/*'],
@@ -30,6 +33,15 @@ describe('WatchCommand', () => {
     vi.mocked(configMod.loadConfig).mockReturnValue(
       mockConfig as unknown as configMod.ReskillConfig,
     );
+
+    vi.mocked(ProjectScanner).mockImplementation(function () {
+      return {
+        scan: vi.fn().mockResolvedValue([
+          { name: 'core', path: 'core' },
+          { name: 'mod1', path: 'modules/mod1' },
+        ]),
+      } as unknown as ProjectScanner;
+    });
   });
 
   it('should start watcher if license is valid', async () => {
@@ -39,7 +51,7 @@ describe('WatchCommand', () => {
     await command.run();
 
     expect(chokidar.watch).toHaveBeenCalledWith(
-      expect.arrayContaining(['core', 'modules/*']),
+      expect.arrayContaining(['core', 'modules/mod1']),
       expect.any(Object),
     );
     expect(onMock).toHaveBeenCalledWith('change', expect.any(Function));

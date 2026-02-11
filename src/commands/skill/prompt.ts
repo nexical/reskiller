@@ -19,8 +19,8 @@ interface GeminiResult {
 
 interface PromptCommandOptions {
   promptName: string;
-  models: string;
-  interactive: boolean;
+  models?: string;
+  interactive?: boolean;
   [key: string]: unknown;
 }
 
@@ -51,7 +51,12 @@ export default class PromptCommand extends BaseCommand {
   };
 
   async run(options: PromptCommandOptions) {
-    const { promptName, models: modelsArg, interactive, ...rest } = options;
+    const {
+      promptName,
+      models: modelsArg = 'gemini-3-flash-preview,gemini-3-pro-preview',
+      interactive = false,
+      ...rest
+    } = options;
     const argv = { ...options, ...rest }; // Pass all options as variables
 
     const fileName = promptName.endsWith('.md') ? promptName : `${promptName}.md`;
