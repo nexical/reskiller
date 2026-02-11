@@ -63,19 +63,11 @@ describe('InitCommand', () => {
   });
 
   it('should fallback to dist prompts if src not found', async () => {
-    let callCount = 0;
     vi.mocked(fs.existsSync).mockImplementation((p: string | Buffer | URL) => {
       const pathStr = p.toString();
-      if (
-        pathStr.includes('prompts') &&
-        !pathStr.includes('.agent') &&
-        !pathStr.includes('.vscode')
-      ) {
-        callCount++;
-        if (callCount === 2) return true; // Dist path
-        return false; // Source path
-      }
-      return false;
+      return (
+        pathStr.includes('prompts') && !pathStr.includes('.agent') && !pathStr.includes('.vscode')
+      );
     });
 
     await command.run();
