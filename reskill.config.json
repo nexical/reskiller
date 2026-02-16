@@ -1,0 +1,15 @@
+{
+  "skillsDir": ".agent/tmp/global-skills",
+  "constitution": {
+    "architecture": "SPEC.md"
+  },
+  "discovery": {
+    "root": ".agent/tmp",
+    "markers": [".skills"],
+    "ignore": [],
+    "depth": 3
+  },
+  "outputs": {
+    "contextFiles": []
+  }
+}

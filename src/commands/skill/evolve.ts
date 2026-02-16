@@ -44,6 +44,26 @@ export default class EvolveCommand extends BaseCommand {
       this.info(`   - ${p.name} (${path.relative(process.cwd(), p.path)})`);
     }
 
+    // 0.5 Build Distributed Skill Index
+    // Map skill name -> absolute path to skill directory (if found in a project)
+    const distributedSkillIndex = new Map<string, string>();
+    for (const p of projects) {
+      if (fs.existsSync(p.skillDir)) {
+        try {
+          const skillsInProject = fs.readdirSync(p.skillDir, {
+            withFileTypes: true,
+          });
+          for (const dirent of skillsInProject) {
+            if (dirent.isDirectory()) {
+              distributedSkillIndex.set(dirent.name, path.join(p.skillDir, dirent.name));
+            }
+          }
+        } catch (e) {
+          this.warn(`⚠️  Failed to read skill directory for project ${p.name}: ${e}`);
+        }
+      }
+    }
+
     const bundler = new Bundler(config);
     await bundler.bundle(projects);
     const bundleDir = bundler.getBundleDir();
@@ -86,9 +106,20 @@ export default class EvolveCommand extends BaseCommand {
           continue;
         }
 
+        // RESOLVE TARGET PATH
+        // If the skill already exists in a distributed project, use that path.
+        // Otherwise, fall back to the global configured skillsDir.
+        let targetSkillPath = path.join(config.skillsDir, skillName);
+        if (distributedSkillIndex.has(skillName)) {
+          targetSkillPath = distributedSkillIndex.get(skillName)!;
+          this.info(`📍 Targeting distributed skill at: ${targetSkillPath}`);
+        } else {
+          this.info(`📍 Targeting global skill at: ${targetSkillPath}`);
+        }
+
         const target: Target = {
           name: skillName,
-          skillPath: path.join(config.skillsDir, skillName),
+          skillPath: targetSkillPath,
           truthPath: modulePath,
         };
 
