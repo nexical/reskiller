@@ -1,5 +1,5 @@
 import { BaseCommand } from '@nexical/cli-core';
-import { loadConfig } from '../../config.js';
+import { ReskillConfig, getReskillConfig } from '../../config.js';
 import { ensureSymlinks } from '../../core/Symlinker.js';
 import { Explorer } from '../../core/Explorer.js';
 import { Architect } from '../../core/Architect.js';
@@ -23,14 +23,18 @@ export default class EvolveCommand extends BaseCommand {
   static description = 'Full cycle: Explore -> Strategize -> Execute';
 
   async run() {
-    let config;
+    let config: ReskillConfig;
     try {
-      config = loadConfig();
-    } catch {
-      this.error('❌ Missing reskill.config.json. Run "reskill init" first.');
-      process.exit(1);
+      config = getReskillConfig(this.config);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      this.error(`❌ ${message}`);
       return;
     }
+
+    // Auto-initialize environment
+    const { Initializer } = await import('../../core/Initializer.js');
+    Initializer.initialize(config, this.projectRoot || process.cwd());
 
     ensureTmpDir();
 

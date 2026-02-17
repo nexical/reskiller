@@ -1,6 +1,4 @@
 import { z } from 'zod';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
 
 export const ReskillConfigSchema = z.object({
   skillsDir: z.string().default('skills'),
@@ -25,12 +23,10 @@ export const ReskillConfigSchema = z.object({
 
 export type ReskillConfig = z.infer<typeof ReskillConfigSchema>;
 
-export function loadConfig(cwd: string = process.cwd()): ReskillConfig {
-  const configPath = path.join(cwd, 'reskill.config.json');
-  if (!fs.existsSync(configPath)) {
-    throw new Error(`Configuration file not found at ${configPath}`);
+export function getReskillConfig(cliConfig: Record<string, unknown>): ReskillConfig {
+  const reskillConfig = cliConfig?.reskill;
+  if (!reskillConfig) {
+    throw new Error('Reskill configuration not found in nexical.yaml under "reskill" key.');
   }
-
-  const rawConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-  return ReskillConfigSchema.parse(rawConfig);
+  return ReskillConfigSchema.parse(reskillConfig);
 }

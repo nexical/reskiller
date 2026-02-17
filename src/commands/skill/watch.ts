@@ -1,5 +1,5 @@
 import { BaseCommand } from '@nexical/cli-core';
-import { ReskillConfig, loadConfig } from '../../config.js';
+import { ReskillConfig, getReskillConfig } from '../../config.js';
 import { Target } from '../../types.js';
 import chokidar from 'chokidar';
 
@@ -15,12 +15,16 @@ export default class WatchCommand extends BaseCommand {
   async run() {
     let config: ReskillConfig;
     try {
-      config = loadConfig();
-    } catch {
-      this.error('❌ Missing reskill.config.json. Run "reskill init" first.');
-      process.exit(1);
-      return; // satisfy ts
+      config = getReskillConfig(this.config);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      this.error(`❌ ${message}`);
+      return;
     }
+
+    // Auto-initialize environment
+    const { Initializer } = await import('../../core/Initializer.js');
+    Initializer.initialize(config, this.projectRoot || process.cwd());
 
     const licenseKey = config.licenseKey || process.env.RESKILL_LICENSE_KEY;
     if (!licenseKey) {
@@ -62,7 +66,7 @@ export default class WatchCommand extends BaseCommand {
 
       // Determine which module this file belongs to
       // This is tricky without the full Explorer logic.
-      // simpler approach: just find which config.input.moduleDir (or platformDir) covers this file.
+      // simpler approach: just find which config.discovery root covers this file.
 
       // For now, let's just say "Change detected, running full evolution?"
       // Plan says "Incremental Run: identify which module changed".

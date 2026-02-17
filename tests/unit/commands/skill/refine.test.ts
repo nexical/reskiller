@@ -26,7 +26,11 @@ describe('RefineCommand', () => {
     command.warn = vi.fn();
     command.success = vi.fn();
 
-    vi.mocked(configMod.loadConfig).mockReturnValue(
+    // Inject config
+    // @ts-expect-error - Mocking protected method
+    command.config = { reskill: mockConfig };
+
+    vi.mocked(configMod.getReskillConfig).mockReturnValue(
       mockConfig as unknown as configMod.ReskillConfig,
     );
   });

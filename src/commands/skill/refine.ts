@@ -1,5 +1,5 @@
 import { BaseCommand, type CommandDefinition } from '@nexical/cli-core';
-import { loadConfig } from '../../config.js';
+import { getReskillConfig } from '../../config.js';
 import { ensureSymlinks } from '../../core/Symlinker.js';
 import { hooks } from '../../core/Hooks.js';
 import {
@@ -35,13 +35,18 @@ export default class RefineCommand extends BaseCommand {
 
     let config;
     try {
-      config = loadConfig();
-    } catch {
-      this.error('❌ Missing reskill.config.json. Run "reskill init" first.');
-      process.exit(1);
+      config = getReskillConfig(this.config);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      this.error(`❌ ${message}`);
       return;
     }
 
+    // Auto-initialize environment
+    const { Initializer } = await import('../../core/Initializer.js');
+    Initializer.initialize(config, this.projectRoot || process.cwd());
+
+    // Ensure tmp dir
     ensureTmpDir();
 
     // Ensure symlinks are set up

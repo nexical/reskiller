@@ -15,12 +15,10 @@ const mockCli = {} as unknown as CLI;
 describe('WatchCommand', () => {
   let command: WatchCommand;
   const mockConfig = {
-    discovery: { root: '.', markers: ['.skills'], ignore: [], depth: 1 },
-    input: {
-      platformDirs: [{ path: 'core' }],
-      moduleDirs: ['modules/*'],
-    },
-    licenseKey: 'valid-key',
+    skillsDir: 'skills',
+    constitution: { architecture: 'Test' },
+    outputs: { contextFiles: [] },
+    licenseKey: 'valid',
   };
 
   beforeEach(() => {
@@ -30,7 +28,11 @@ describe('WatchCommand', () => {
     command.error = vi.fn();
     command.warn = vi.fn();
 
-    vi.mocked(configMod.loadConfig).mockReturnValue(
+    // Inject config
+    // @ts-expect-error - Mocking protected method
+    command.config = { reskill: mockConfig };
+
+    vi.mocked(configMod.getReskillConfig).mockReturnValue(
       mockConfig as unknown as configMod.ReskillConfig,
     );
 
@@ -59,7 +61,7 @@ describe('WatchCommand', () => {
   });
 
   it('should exit if license missing', async () => {
-    vi.mocked(configMod.loadConfig).mockReturnValue({
+    vi.mocked(configMod.getReskillConfig).mockReturnValue({
       ...mockConfig,
       licenseKey: undefined,
     } as unknown as configMod.ReskillConfig);
@@ -75,7 +77,7 @@ describe('WatchCommand', () => {
   });
 
   it('should exit if license expired', async () => {
-    vi.mocked(configMod.loadConfig).mockReturnValue({
+    vi.mocked(configMod.getReskillConfig).mockReturnValue({
       ...mockConfig,
       licenseKey: 'expired',
     } as unknown as configMod.ReskillConfig);
@@ -91,20 +93,13 @@ describe('WatchCommand', () => {
   });
 
   it('should exit if config missing', async () => {
-    vi.mocked(configMod.loadConfig).mockImplementation(() => {
+    vi.mocked(configMod.getReskillConfig).mockImplementation(() => {
       throw new Error('Missing');
     });
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Exit called');
-    });
 
-    await expect(command.run()).rejects.toThrow('Exit called');
+    await command.run();
 
-    expect(command.error).toHaveBeenCalledWith(
-      expect.stringContaining('Missing reskill.config.json'),
-    );
-    expect(exitSpy).toHaveBeenCalledWith(1);
-    exitSpy.mockRestore();
+    expect(command.error).toHaveBeenCalledWith(expect.stringContaining('Missing'));
   });
 
   it('should handle file change event', async () => {

@@ -31,12 +31,17 @@ describe('EvolveCommand', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     command = new EvolveCommand(mockCli);
+    // Mock BaseCommand logger methods
     command.info = vi.fn();
     command.error = vi.fn();
     command.warn = vi.fn();
     command.success = vi.fn();
 
-    vi.mocked(configMod.loadConfig).mockReturnValue(
+    // Inject config as if from CLI
+    // @ts-expect-error - Mocking protected method
+    command.config = { reskill: mockConfig };
+
+    vi.mocked(configMod.getReskillConfig).mockReturnValue(
       mockConfig as unknown as configMod.ReskillConfig,
     );
 
