@@ -28,7 +28,6 @@ reskill:
   skillsDir: "skills"
   discovery:
     root: "."
-    markers: [".skills"]
     ignore: ["node_modules"]
     depth: 5
   outputs:

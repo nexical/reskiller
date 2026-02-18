@@ -9,7 +9,6 @@ export const ReskillConfigSchema = z.object({
   discovery: z
     .object({
       root: z.string().default('.'),
-      markers: z.array(z.string()).default(['.skills']),
       ignore: z.array(z.string()).default(['node_modules', 'dist', '.git']),
       depth: z.number().default(5),
     })

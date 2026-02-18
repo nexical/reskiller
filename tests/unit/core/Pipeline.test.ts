@@ -44,8 +44,8 @@ describe('Pipeline', () => {
   describe('Stage wrappers', () => {
     const target = { name: 'Test Skill', skillPath: '/skill/path', truthPath: '/truth/path' };
 
-    it('stageAuditor should call AgentRunner', () => {
-      const result = stageAuditor(target, mockConfig as unknown as ReskillConfig);
+    it('stageAuditor should call AgentRunner', async () => {
+      const result = await stageAuditor(target, mockConfig as unknown as ReskillConfig);
       expect(AgentRunner.run).toHaveBeenCalledWith(
         'Auditor',
         'agents/auditor.md',
@@ -54,8 +54,8 @@ describe('Pipeline', () => {
       expect(result).toContain('Test-Skill-canon.json');
     });
 
-    it('stageCritic should call AgentRunner', () => {
-      stageCritic(target, 'canon.json', mockConfig as unknown as ReskillConfig);
+    it('stageCritic should call AgentRunner', async () => {
+      await stageCritic(target, 'canon.json', mockConfig as unknown as ReskillConfig);
       expect(AgentRunner.run).toHaveBeenCalledWith(
         'Critic',
         'agents/critic.md',
@@ -63,8 +63,13 @@ describe('Pipeline', () => {
       );
     });
 
-    it('stageInstructor should call AgentRunner', () => {
-      stageInstructor(target, 'canon.json', 'drift.md', mockConfig as unknown as ReskillConfig);
+    it('stageInstructor should call AgentRunner', async () => {
+      await stageInstructor(
+        target,
+        'canon.json',
+        'drift.md',
+        mockConfig as unknown as ReskillConfig,
+      );
       expect(AgentRunner.run).toHaveBeenCalledWith(
         'Instructor',
         'agents/instructor.md',

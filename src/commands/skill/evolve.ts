@@ -21,8 +21,17 @@ const TMP_DIR = '.agent/tmp/reskill';
 
 export default class EvolveCommand extends BaseCommand {
   static description = 'Full cycle: Explore -> Strategize -> Execute';
+  static args = {
+    args: [
+      {
+        name: 'directory',
+        description: 'Optional directory to scope the evolution to',
+        required: false,
+      },
+    ],
+  };
 
-  async run() {
+  async run(options: { directory?: string } = {}) {
     let config: ReskillConfig;
     try {
       config = getReskillConfig(this.config);
@@ -42,11 +51,21 @@ export default class EvolveCommand extends BaseCommand {
     const root = this.projectRoot || process.cwd();
     const resolvedSkillsDir = path.resolve(root, config.skillsDir);
 
+    // Resolve scope directory if provided
+    let scope: string | undefined;
+    if (options.directory) {
+      scope = path.resolve(root, options.directory);
+      this.info(`🎯 Scoping evolution to: ${scope}`);
+      if (!fs.existsSync(scope)) {
+        this.error(`❌ Scoped directory does not exist: ${scope}`);
+        return;
+      }
+    }
+
     // 0. Discovery & Bundling
     this.info('🔭 Discovering projects and bundling skills...');
-    const projectScanner = new ProjectScanner(config);
-    const projects = await projectScanner.scan();
-
+    const projectScanner = new ProjectScanner(config, root);
+    const projects = await projectScanner.scan(scope);
     this.info(`✅ Found ${projects.length} projects.`);
     for (const p of projects) {
       this.info(`   - ${p.name} (${path.relative(process.cwd(), p.path)})`);

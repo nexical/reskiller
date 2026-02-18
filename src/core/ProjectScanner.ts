@@ -18,37 +18,69 @@ export class ProjectScanner {
     this.cwd = cwd;
   }
 
-  async scan(): Promise<Project[]> {
-    console.info('🔭 ProjectScanner: Scanning for projects...');
-    const { root, markers, ignore, depth } = this.config.discovery;
+  async scan(scope?: string): Promise<Project[]> {
+    const { root, ignore, depth } = this.config.discovery;
+    const markers = ['.git', '.skills'];
 
-    // Convert ignore patterns to glob format if needed, or assume they are glob-ish
-    // fast-glob ignore patterns: ['**/node_modules/**', '**/dist/**']
-    const strictIgnore = ignore.map((pattern) => `**/${pattern}/**`);
+    // We must ensure the markers themselves are NOT ignored during discovery
+    const filteredIgnore = ignore.filter((p: string) => !markers.includes(p));
+    const strictIgnore = filteredIgnore.map((pattern: string) => `**/${pattern}/**`);
 
     const projects: Project[] = [];
     const seenPaths = new Set<string>();
 
     for (const marker of markers) {
-      // Look for folders named .skills directory recursively
-      // Pattern: **/.skills
-      const pattern = `**/${marker}`;
+      // Look for folders/files named .git or .skills recursively (including root)
+      const patterns = [marker, `**/${marker}`];
 
-      const skillDirs = await fg(pattern, {
+      const skillDirs = await fg(patterns, {
         cwd: path.resolve(this.cwd, root),
         ignore: strictIgnore,
         deep: depth,
-        onlyDirectories: true,
+        onlyFiles: false,
+        onlyDirectories: false,
         absolute: true,
+        dot: true,
       });
 
       for (const skillDirPath of skillDirs) {
-        const projectPath = path.dirname(skillDirPath);
+        let projectPath = path.dirname(skillDirPath);
+        let finalSkillDir = skillDirPath;
+
+        // If marker was .git, the skill directory is actually .skills in that same project
+        if (skillDirPath.endsWith('.git')) {
+          finalSkillDir = path.join(projectPath, '.skills');
+        }
+
+        // Scoping logic:
+        // 1. If project path is within scope, include as is.
+        // 2. If scope is within project path, include project but update its path to scope.
+        // 3. Otherwise, exclude.
+
+        if (scope) {
+          const relativeToScope = path.relative(scope, projectPath);
+          const relativeToProject = path.relative(projectPath, scope);
+
+          const projectInsideScope =
+            !relativeToScope.startsWith('..') && !path.isAbsolute(relativeToScope);
+          const scopeInsideProject =
+            !relativeToProject.startsWith('..') && !path.isAbsolute(relativeToProject);
+
+          if (projectInsideScope) {
+            // Include as is
+          } else if (scopeInsideProject) {
+            // Update project path to scope
+            projectPath = scope;
+          } else {
+            // Exclude
+            continue;
+          }
+        }
 
         if (seenPaths.has(projectPath)) continue;
         seenPaths.add(projectPath);
 
-        const project = this.resolveProject(projectPath, skillDirPath);
+        const project = this.resolveProject(projectPath, finalSkillDir);
         projects.push(project);
       }
     }
@@ -69,7 +101,7 @@ export class ProjectScanner {
         }
       } catch {
         console.warn(
-          `⚠️  Failed to parse package.json at ${pkgJsonPath}, using directory name: ${name}`,
+          `⚠️ Failed to parse package.json at ${pkgJsonPath}, using directory name: ${name}`,
         );
       }
     }

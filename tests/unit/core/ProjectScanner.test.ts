@@ -11,7 +11,6 @@ describe('ProjectScanner', () => {
   const mockConfig = {
     discovery: {
       root: '.',
-      markers: ['.skills'],
       ignore: ['node_modules'],
       depth: 5,
     },
@@ -22,8 +21,8 @@ describe('ProjectScanner', () => {
     vi.resetAllMocks();
   });
 
-  it('should find projects with .skills markers', async () => {
-    vi.mocked(fg).mockResolvedValue(['/mock/cwd/core/.skills', '/mock/cwd/packages/a/.skills']);
+  it('should find projects with .git or .skills markers', async () => {
+    vi.mocked(fg).mockResolvedValue(['/mock/cwd/core/.git', '/mock/cwd/packages/a/.skills']);
 
     vi.mocked(fs.existsSync).mockReturnValue(false); // No package.json
 
@@ -33,6 +32,7 @@ describe('ProjectScanner', () => {
     expect(projects).toHaveLength(2);
     expect(projects[0].name).toBe('a');
     expect(projects[1].name).toBe('core');
+    expect(projects[1].skillDir).toBe('/mock/cwd/core/.skills');
   });
 
   it('should use package.json name if available', async () => {
@@ -77,58 +77,68 @@ describe('ProjectScanner', () => {
     warnSpy.mockRestore();
   });
 
-  it('should handle multiple markers', async () => {
-    const multiMarkerConfig = {
-      discovery: {
-        ...mockConfig.discovery,
-        markers: ['.skills', 'skills'],
-      },
-    };
+  it('should find projects using .git files (submodules)', async () => {
+    vi.mocked(fg).mockResolvedValue(['/mock/cwd/submodule/.git']);
+    vi.mocked(fs.existsSync).mockReturnValue(false);
 
-    vi.mocked(fg)
-      .mockResolvedValueOnce(['/mock/cwd/a/.skills'])
-      .mockResolvedValueOnce(['/mock/cwd/b/skills']);
-
-    const scanner = new ProjectScanner(multiMarkerConfig as unknown as ReskillConfig, mockCwd);
-    const projects = await scanner.scan();
-
-    expect(projects).toHaveLength(2);
-    expect(projects.map((p) => p.name)).toContain('a');
-    expect(projects.map((p) => p.name)).toContain('b');
-  });
-
-  it('should ignore duplicate project paths', async () => {
-    vi.mocked(fg).mockResolvedValue([
-      '/mock/cwd/packages/a/.skills',
-      '/mock/cwd/packages/a/sub/.skills', // This resolves to same project dir /mock/cwd/packages/a if we logic it right?
-      // Wait, resolveProject uses path.dirname(skillDirPath).
-      // So '/mock/cwd/packages/a/.skills' -> '/mock/cwd/packages/a'
-      // And '/mock/cwd/packages/a/sub/.skills' -> '/mock/cwd/packages/a/sub'
-      // These are different.
-
-      // To trigger seenPaths.has(projectPath), we need TWO skill dirs in the SAME project dir?
-      // Or same skill dir returned twice?
-      // fg usually returns unique paths.
-
-      // Use two markers resolving to same place?
-    ]);
-
-    // Let's use multiple markers finding the same file
-    const multiMarkerConfig = {
-      discovery: {
-        ...mockConfig.discovery,
-        markers: ['.skills', '.skills'], // Duplicate marker to trigger double scan?
-      },
-    };
-    // The code iterates over markers.
-    // loops marker 1 -> finds X
-    // loops marker 2 -> finds X again
-
-    vi.mocked(fg).mockResolvedValue(['/mock/cwd/packages/a/.skills']);
-
-    const scanner = new ProjectScanner(multiMarkerConfig as unknown as ReskillConfig, mockCwd);
+    const scanner = new ProjectScanner(mockConfig as unknown as ReskillConfig, mockCwd);
     const projects = await scanner.scan();
 
     expect(projects).toHaveLength(1);
+    expect(projects[0].name).toBe('submodule');
+    expect(projects[0].skillDir).toBe('/mock/cwd/submodule/.skills');
+  });
+
+  it('should ignore duplicate project paths', async () => {
+    vi.mocked(fg).mockResolvedValue(['/mock/cwd/packages/a/.skills']);
+
+    const scanner = new ProjectScanner(mockConfig as unknown as ReskillConfig, mockCwd);
+    const projects = await scanner.scan();
+
+    expect(projects).toHaveLength(1);
+  });
+
+  describe('scoping', () => {
+    it('should include project if it is inside the scope', async () => {
+      vi.mocked(fg).mockResolvedValue(['/mock/cwd/packages/a/.skills']);
+      const scanner = new ProjectScanner(mockConfig as unknown as ReskillConfig, mockCwd);
+      const projects = await scanner.scan('/mock/cwd/packages');
+
+      expect(projects).toHaveLength(1);
+      expect(projects[0].path).toBe('/mock/cwd/packages/a');
+      expect(projects[0].name).toBe('a');
+    });
+
+    it('should update project path to scope if scope is inside the project', async () => {
+      vi.mocked(fg).mockResolvedValue(['/mock/cwd/packages/a/.skills']);
+      const scope = '/mock/cwd/packages/a/src/commands';
+      const scanner = new ProjectScanner(mockConfig as unknown as ReskillConfig, mockCwd);
+      const projects = await scanner.scan(scope);
+
+      expect(projects).toHaveLength(1);
+      expect(projects[0].path).toBe(scope);
+      expect(projects[0].name).toBe('commands');
+    });
+
+    it('should exclude project if it is outside the scope (sibling)', async () => {
+      vi.mocked(fg).mockResolvedValue(['/mock/cwd/packages/a/.skills']);
+      const scanner = new ProjectScanner(mockConfig as unknown as ReskillConfig, mockCwd);
+      const projects = await scanner.scan('/mock/cwd/packages/b');
+
+      expect(projects).toHaveLength(0);
+    });
+
+    it('should exclude project if it is a parent of the scope but no scopeInsideProject match?', async () => {
+      // Actually, if it's a parent, it should become the scope.
+      // E.g. .skills is at root, scope is packages/a.
+      vi.mocked(fg).mockResolvedValue(['/mock/cwd/.skills']);
+      const scope = '/mock/cwd/packages/a';
+      const scanner = new ProjectScanner(mockConfig as unknown as ReskillConfig, mockCwd);
+      const projects = await scanner.scan(scope);
+
+      expect(projects).toHaveLength(1);
+      expect(projects[0].path).toBe(scope);
+      expect(projects[0].name).toBe('a');
+    });
   });
 });

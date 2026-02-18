@@ -6,8 +6,8 @@ import { CLI } from '@nexical/cli-core';
 
 describe('EvolveCommand Integration', () => {
   let projectDir: string;
-  let EvolveCommand: any;
-  let command: any;
+  let EvolveCommand: typeof import('../../../../src/commands/skill/evolve.js').default;
+  let command: InstanceType<typeof import('../../../../src/commands/skill/evolve.js').default>;
 
   beforeEach(async () => {
     vi.resetModules(); // Clear cache
@@ -30,16 +30,18 @@ describe('EvolveCommand Integration', () => {
     }));
 
     // Mock Explorer to prevent fs writes if Pipeline mock fails
-    vi.doMock('../../../../src/core/Explorer.js', () => ({
-      Explorer: class {
-        static async discover() {
-          return [];
+    vi.doMock('../../../../src/core/Explorer.js', () => {
+      class Explorer {
+        static mockConstructor = vi.fn();
+        constructor(...args: unknown[]) {
+          Explorer.mockConstructor(...args);
         }
         async discover() {
-          return [];
+          return 'kg.json';
         }
-      },
-    }));
+      }
+      return { Explorer };
+    });
 
     // Mock Bundler
     vi.doMock('../../../../src/core/Bundler.js', () => ({
@@ -97,6 +99,7 @@ describe('EvolveCommand Integration', () => {
     command = new EvolveCommand(mockCli);
 
     // Manually inject config that would come from cli-core
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (command as any).config = {
       reskill: {
         skillsDir: 'skills',
@@ -105,6 +108,7 @@ describe('EvolveCommand Integration', () => {
         constitution: { architecture: 'Test' },
       },
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (command as any).projectRoot = projectDir;
 
     // Mock logger to avoid clutter
@@ -134,5 +138,37 @@ describe('EvolveCommand Integration', () => {
     // Verify skill directory creation (Architect planned 'test-skill')
     const skillDir = path.join(projectDir, 'skills/test-skill');
     expect(fs.existsSync(skillDir)).toBe(true);
+  });
+
+  it('should scope evolution when directory argument is provided', async () => {
+    // Create another subproject
+    fs.mkdirSync(path.join(projectDir, 'sub2/.skills'), { recursive: true });
+
+    const { Explorer } = await import('../../../../src/core/Explorer.js');
+
+    // Run with relative path scope
+    await command.run({ directory: 'sub2' });
+
+    // Verify information log
+    expect(command.info).toHaveBeenCalledWith(expect.stringContaining('Scoping evolution to:'));
+    expect(command.info).toHaveBeenCalledWith(
+      expect.stringContaining(path.join(projectDir, 'sub2')),
+    );
+
+    // Verify Explorer was called with only one project (the one in sub2)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const explorerCalls = (Explorer as any).mockConstructor.mock.calls;
+    expect(explorerCalls.length).toBeGreaterThan(0);
+    const projectsArg = explorerCalls[0][0];
+
+    expect(projectsArg).toHaveLength(1);
+    expect(projectsArg[0].path).toBe(path.join(projectDir, 'sub2'));
+  });
+
+  it('should error if the scoped directory does not exist', async () => {
+    await command.run({ directory: 'non-existent' });
+    expect(command.error).toHaveBeenCalledWith(
+      expect.stringContaining('Scoped directory does not exist'),
+    );
   });
 });

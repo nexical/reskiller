@@ -9,7 +9,6 @@ describe('config', () => {
         constitution: { architecture: 'Arch' },
         discovery: {
           root: '.',
-          markers: ['.skills'],
           ignore: ['node_modules'],
           depth: 5,
         },
