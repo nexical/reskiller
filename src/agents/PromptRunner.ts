@@ -27,7 +27,7 @@ export class PromptRunner {
   static async run(options: PromptOptions): Promise<void> {
     const {
       promptName,
-      models: modelsArg = 'gemini-3-flash-preview,gemini-3-pro-preview',
+      models: modelsArg = 'gemini-3-pro-preview,gemini-3-flash-preview',
       interactive = false,
       ...rest
     } = options;
