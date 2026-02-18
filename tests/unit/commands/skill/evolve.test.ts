@@ -162,12 +162,12 @@ describe('EvolveCommand', () => {
     });
 
     // Mock fs to simulate distributed skill existence
-    vi.mocked(fs.existsSync).mockImplementation((p) => {
+    vi.mocked(fs.existsSync).mockImplementation((p: fs.PathLike) => {
       if (p.toString() === '/root/proj1/.skills') return true;
       return false;
     });
 
-    vi.mocked(fs.readdirSync).mockImplementation((p) => {
+    vi.mocked(fs.readdirSync).mockImplementation(((p: fs.PathLike) => {
       if (p.toString() === '/root/proj1/.skills') {
         return [
           {
@@ -177,7 +177,7 @@ describe('EvolveCommand', () => {
         ];
       }
       return [];
-    });
+    }) as any);
 
     // Architect plans to update this distributed skill
     vi.mocked(Architect).mockImplementation(function () {
