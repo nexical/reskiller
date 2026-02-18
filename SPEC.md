@@ -90,22 +90,22 @@ To function correctly, Reskill imposes the following constraints on the target c
 
 ## 4. Configuration
 
-Reskill is configured via `reskill.config.json` in the project root.
+Reskill is configured via the `reskill` key in `nexical.yaml` (or the project's central configuration).
 
 ### Schema (`ReskillConfig`)
 
-| Field                       | Type             | Description                                                                  |
-| :-------------------------- | :--------------- | :--------------------------------------------------------------------------- |
-| `skillsDir`                 | `string`         | Directory where skills are stored. Default: `.agent/skills`.                 |
-| `constitution`              | `object`         | References to global governance documents.                                   |
-| `constitution.architecture` | `string`         | Path to the main architecture doc (required).                                |
-| `constitution.patterns`     | `string`         | Path to the patterns/modules doc (optional).                                 |
-| `input`                     | `object`         | Defines the scope of the scanner.                                            |
-| `input.platformDirs`        | `{name, path}[]` | Directions to the "Kernel" code (Source of Truth).                           |
-| `input.moduleDirs`          | `string[]`       | Glob patterns for "User Space" code (Implementations).                       |
-| `outputs`                   | `object`         | Where to inject the skill index.                                             |
-| `outputs.contextFiles`      | `string[]`       | Files to update with the list of skills (e.g., `GEMINI.md`, `.cursorrules`). |
-| `licenseKey`                | `string`         | (Optional) Key for Pro features (Watch mode).                                |
+| Field                       | Type       | Description                                                                  |
+| :-------------------------- | :--------- | :--------------------------------------------------------------------------- |
+| `skillsDir`                 | `string`   | Directory where skills are stored. Default: `skills`.                        |
+| `constitution`              | `object`   | References to global governance documents.                                   |
+| `constitution.architecture` | `string`   | Path to the main architecture doc (required).                                |
+| `constitution.patterns`     | `string`   | Path to the patterns/modules doc (optional).                                 |
+| `discovery`                 | `object`   | Defines the scope of the scanner.                                            |
+| `discovery.root`            | `string`   | Root directory to scan from. Default: `.`.                                   |
+| `discovery.markers`         | `string[]` | Directory names that indicate a "Skill Project". Default: `['.skills']`.     |
+| `outputs`                   | `object`   | Where to inject the skill index.                                             |
+| `outputs.contextFiles`      | `string[]` | Files to update with the list of skills (e.g., `GEMINI.md`, `.cursorrules`). |
+| `licenseKey`                | `string`   | (Optional) Key for Pro features (Watch mode).                                |
 
 ---
 
@@ -136,25 +136,16 @@ The "Commercial Pro" tier enables the **Hooks System**, allowing plugins to reac
 
 ## 6. Usage
 
+Reskill automatically initializes its environment (scaffolds directories and copies prompts) on the first execution of any command.
+
 ### CLI Commands
-
-#### `init`
-
-Scaffolds a new Reskill integration.
-
-```bash
-npx reskill init
-```
-
-- Creates `reskill.config.json`.
-- Copies default prompts to `.agent/prompts`.
 
 #### `evolve`
 
 Runs the full evolutionary loop.
 
 ```bash
-npx reskill evolve
+nexical skill evolve
 ```
 
 - Best for CI/CD pipelines or nightly builds.
@@ -165,7 +156,7 @@ npx reskill evolve
 Manually refine a specific skill using a specific module as the exemplar.
 
 ```bash
-npx reskill refine "API Development" "apps/backend/modules/user"
+nexical skill refine "API Development" "apps/backend/modules/user"
 ```
 
 - Best for "Golden Path" updates.
@@ -175,7 +166,7 @@ npx reskill refine "API Development" "apps/backend/modules/user"
 Runs as a daemon, watching for file changes.
 
 ```bash
-npx reskill watch
+nexical skill watch
 ```
 
 - Requires `licenseKey`.

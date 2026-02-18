@@ -11,13 +11,13 @@ It treats skills as software artifacts that can be:
 
 ## Configuration
 
-Reskill is configured entirely through the `nexical.yaml` file in your project root.
+Reskill is configured through the `nexical.yaml` file in your project root, under the `reskill` key.
 
 ### Schema
 
 ```yaml
 reskill:
-  # Directory where global/generated skills are stored
+  # Directory where global/generated skills are stored (default: 'skills')
   skillsDir: 'skills'
 
   # Constitution governing the AI's behavior and architectural rules
@@ -50,7 +50,7 @@ reskill:
 
 ## Usage
 
-Reskill automatically initializes its environment.
+Reskill automatically initializes its environment on the first run of any command. You do not need to run a manual setup.
 
 - **Global Prompts**: Stored in `.reskiller/prompts`. You can customize these files.
 - **Skills**: Stored in `skills` (or your configured `skillsDir`).
