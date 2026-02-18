@@ -7,6 +7,7 @@ import {
   updateContextFiles,
 } from '../../../src/core/Pipeline.js';
 import { AgentRunner } from '../../../src/agents/AgentRunner.js';
+import { logger } from '../../../src/core/Logger.js';
 import * as fs from 'node:fs';
 import { ReskillConfig } from '../../../src/config.js';
 
@@ -143,7 +144,7 @@ describe('Pipeline', () => {
     });
 
     it('should warn if context file missing', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
       vi.mocked(fs.existsSync).mockReturnValue(false); // No context file
 
       await updateContextFiles(mockConfig as unknown as ReskillConfig);

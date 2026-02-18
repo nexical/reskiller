@@ -3,6 +3,7 @@ import { ProjectScanner } from '../../../src/core/ProjectScanner.js';
 import * as fs from 'node:fs';
 import fg from 'fast-glob';
 import { ReskillConfig } from '../../../src/config.js';
+import { logger } from '../../../src/core/Logger.js';
 
 vi.mock('node:fs');
 vi.mock('fast-glob');
@@ -65,8 +66,8 @@ describe('ProjectScanner', () => {
       throw new Error('Invalid JSON');
     });
 
-    // Spy on console.warn
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // Spy on logger.warn
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
 
     const scanner = new ProjectScanner(mockConfig as unknown as ReskillConfig, mockCwd);
     const projects = await scanner.scan();

@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { AgentRunner } from '../agents/AgentRunner.js';
 import { SkillPlan } from '../types.js';
+import { logger } from './Logger.js';
 
 export class Architect {
   private skillsDir: string;
@@ -13,7 +14,7 @@ export class Architect {
   }
 
   async strategize(knowledgeGraphPath: string): Promise<SkillPlan> {
-    console.info('🏗️ Architect: Designing Skill Portfolio...');
+    logger.info('🏗️ Architect: Designing Skill Portfolio...');
 
     const skills = this.listSkills();
     const skillsFile = path.join(this.tmpDir, 'current-skills.json');

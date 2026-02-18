@@ -2,6 +2,7 @@ import { BaseCommand, type CommandDefinition } from '@nexical/cli-core';
 import { getReskillConfig } from '../../config.js';
 import { ensureSymlinks } from '../../core/Symlinker.js';
 import { hooks } from '../../core/Hooks.js';
+import { logger } from '../../core/Logger.js';
 import {
   ensureTmpDir,
   stageAuditor,
@@ -31,6 +32,9 @@ export default class RefineCommand extends BaseCommand {
   };
 
   async run(options: { skillName: string; modulePath: string }) {
+    logger.setCommand(this);
+    logger.setDebug(this.globalOptions.debug);
+
     const { skillName, modulePath } = options;
 
     let config;
@@ -38,7 +42,7 @@ export default class RefineCommand extends BaseCommand {
       config = getReskillConfig(this.config);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      this.error(`❌ ${message}`);
+      logger.error(message);
       return;
     }
 
@@ -75,8 +79,8 @@ export default class RefineCommand extends BaseCommand {
     await stageInstructor(target, canonFile, driftFile, config);
     await hooks.onSkillUpdated(target);
 
-    this.info('\n📚 Updating Context Files...');
+    logger.info('📚 Updating Context Files...');
     await updateContextFiles(config);
-    this.success('Refinement complete.');
+    logger.success('Refinement complete.');
   }
 }

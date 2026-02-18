@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { Project } from './ProjectScanner.js';
 import { ReskillConfig } from '../config.js';
+import { logger } from './Logger.js';
 
 export class Bundler {
   private config: ReskillConfig;
@@ -15,7 +16,7 @@ export class Bundler {
   }
 
   async bundle(projects: Project[]): Promise<void> {
-    console.info('📦 Bundler: Aggregating skills...');
+    logger.info('📦 Bundler: Aggregating skills...');
 
     // Clean bundle directory
     if (fs.existsSync(this.bundleDir)) {
@@ -47,9 +48,7 @@ export class Bundler {
 
     // Safety check: ensure we don't overwrite if multiple projects have same name (unlikely with unique keys, but possible with simple names)
     if (fs.existsSync(targetDir)) {
-      console.warn(
-        `⚠️  Collision detected for project name: ${project.name}. Creating unique alias.`,
-      );
+      logger.warn(`Collision detected for project name: ${project.name}. Creating unique alias.`);
       // Simple alias logic: append hash or path seq? Let's just warn for now.
     }
 
@@ -64,9 +63,9 @@ export class Bundler {
       // Create symlink
       // We use absolute paths for simplicity in the bundle
       fs.symlinkSync(target, pathLike, 'dir');
-      // console.debug(`🔗 Linked ${target} -> ${pathLike}`);
+      logger.debug(`🔗 Linked ${target} -> ${pathLike}`);
     } catch (e) {
-      console.error(`❌ Failed to link ${target} to ${pathLike}:`, e);
+      logger.error(`Failed to link ${target} to ${pathLike}: ${e}`);
     }
   }
 

@@ -1,6 +1,7 @@
 import { BaseCommand } from '@nexical/cli-core';
 import { ReskillConfig, getReskillConfig } from '../../config.js';
 import { Target } from '../../types.js';
+import { logger } from '../../core/Logger.js';
 import chokidar from 'chokidar';
 
 // Hooks stub
@@ -13,12 +14,15 @@ export default class WatchCommand extends BaseCommand {
   static description = 'Watch for changes and incrementally refine skills (Pro)';
 
   async run() {
+    logger.setCommand(this);
+    logger.setDebug(this.globalOptions.debug);
+
     let config: ReskillConfig;
     try {
       config = getReskillConfig(this.config);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      this.error(`❌ ${message}`);
+      logger.error(message);
       return;
     }
 
@@ -28,18 +32,16 @@ export default class WatchCommand extends BaseCommand {
 
     const licenseKey = config.licenseKey || process.env.RESKILL_LICENSE_KEY;
     if (!licenseKey) {
-      this.error(
+      logger.error(
         "🔒 The 'watch' command is a Pro feature. Please upgrade and set 'licenseKey' in config or env.",
       );
-      process.exit(1);
     }
 
     // Verify license (Stub)
     if (licenseKey === 'expired') {
-      this.error('🔒 License expired.');
-      process.exit(1);
+      logger.error('🔒 License expired.');
     }
-    this.info('🔓 Pro License Verified. Starting Watcher...');
+    logger.info('🔓 Pro License Verified. Starting Watcher...');
 
     // Discover projects to watch
     const { ProjectScanner } = await import('../../core/ProjectScanner.js');
@@ -49,7 +51,7 @@ export default class WatchCommand extends BaseCommand {
     // Setup watcher
     const watchPaths = projects.map((p) => p.path);
 
-    this.info(`👀 Watching for changes in: ${JSON.stringify(watchPaths)}`);
+    logger.info(`👀 Watching for changes in: ${JSON.stringify(watchPaths)}`);
 
     const watcher = chokidar.watch(watchPaths, {
       ignored: /(^|[/\\])\../, // ignore dotfiles
@@ -62,7 +64,7 @@ export default class WatchCommand extends BaseCommand {
     });
 
     watcher.on('change', async (filePath) => {
-      this.info(`\n📝 File changed: ${filePath}`);
+      logger.info(`📝 File changed: ${filePath}`);
 
       // Determine which module this file belongs to
       // This is tricky without the full Explorer logic.
@@ -81,7 +83,7 @@ export default class WatchCommand extends BaseCommand {
       // For MVP, checking if it is an exemplar is hard without previous state.
       // We could run Architect to see if plan changes? expensive.
 
-      this.info("⚠️  Incremental update not fully implemented. Run 'reskill evolve' to update.");
+      logger.warn("Incremental update not fully implemented. Run 'reskill evolve' to update.");
 
       // Trigger hook integration for fun
       // await hooks.onDriftDetected(...)

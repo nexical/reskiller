@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import fg from 'fast-glob';
 import { ReskillConfig } from '../config.js';
+import { logger } from './Logger.js';
 
 export interface Project {
   name: string;
@@ -100,8 +101,8 @@ export class ProjectScanner {
           name = pkg.name;
         }
       } catch {
-        console.warn(
-          `⚠️ Failed to parse package.json at ${pkgJsonPath}, using directory name: ${name}`,
+        logger.warn(
+          `Failed to parse package.json at ${pkgJsonPath}, using directory name: ${name}`,
         );
       }
     }

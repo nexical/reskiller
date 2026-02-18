@@ -4,6 +4,7 @@ import * as configMod from '../../../../src/config.js';
 import chokidar from 'chokidar';
 import { ProjectScanner } from '../../../../src/core/ProjectScanner.js';
 import { CLI } from '@nexical/cli-core';
+import { logger } from '../../../../src/core/Logger.js';
 
 vi.mock('../../../../src/config.js');
 vi.mock('chokidar');
@@ -32,8 +33,12 @@ describe('WatchCommand', () => {
     vi.resetAllMocks();
     command = new WatchCommand(mockCli);
     command.info = vi.fn();
-    command.error = vi.fn();
+    command.error = vi.fn().mockImplementation(() => {
+      throw new Error('Exit called');
+    });
     command.warn = vi.fn();
+
+    logger.setCommand(command);
 
     // Inject config
     // @ts-expect-error - Mocking protected method
@@ -72,15 +77,9 @@ describe('WatchCommand', () => {
       ...mockConfig,
       licenseKey: undefined,
     } as unknown as configMod.ReskillConfig);
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Exit called');
-    });
-
     await expect(command.run()).rejects.toThrow('Exit called');
 
     expect(command.error).toHaveBeenCalledWith(expect.stringContaining('Pro feature'));
-    expect(exitSpy).toHaveBeenCalledWith(1);
-    exitSpy.mockRestore();
   });
 
   it('should exit if license expired', async () => {
@@ -88,15 +87,9 @@ describe('WatchCommand', () => {
       ...mockConfig,
       licenseKey: 'expired',
     } as unknown as configMod.ReskillConfig);
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Exit called');
-    });
-
     await expect(command.run()).rejects.toThrow('Exit called');
 
     expect(command.error).toHaveBeenCalledWith(expect.stringContaining('License expired'));
-    expect(exitSpy).toHaveBeenCalledWith(1);
-    exitSpy.mockRestore();
   });
 
   it('should exit if config missing', async () => {
@@ -104,7 +97,7 @@ describe('WatchCommand', () => {
       throw new Error('Missing');
     });
 
-    await command.run();
+    await expect(command.run()).rejects.toThrow('Exit called');
 
     expect(command.error).toHaveBeenCalledWith(expect.stringContaining('Missing'));
   });
@@ -114,7 +107,7 @@ describe('WatchCommand', () => {
       throw 'String Error';
     });
 
-    await command.run();
+    await expect(command.run()).rejects.toThrow('Exit called');
 
     expect(command.error).toHaveBeenCalledWith(expect.stringContaining('String Error'));
   });
@@ -138,7 +131,7 @@ describe('WatchCommand', () => {
     if (changeCallback) {
       await changeCallback('changed/file.ts');
       expect(command.info).toHaveBeenCalledWith(expect.stringContaining('File changed'));
-      expect(command.info).toHaveBeenCalledWith(
+      expect(command.warn).toHaveBeenCalledWith(
         expect.stringContaining('Incremental update not fully implemented'),
       );
     }

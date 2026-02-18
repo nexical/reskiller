@@ -14,6 +14,7 @@ import {
   updateContextFiles,
 } from '../../core/Pipeline.js';
 import { Target } from '../../types.js';
+import { logger } from '../../core/Logger.js';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 
@@ -32,12 +33,15 @@ export default class EvolveCommand extends BaseCommand {
   };
 
   async run(options: { directory?: string } = {}) {
+    logger.setCommand(this);
+    logger.setDebug(this.globalOptions.debug);
+
     let config: ReskillConfig;
     try {
       config = getReskillConfig(this.config);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      this.error(`❌ ${message}`);
+      logger.error(message);
       return;
     }
 
@@ -55,20 +59,20 @@ export default class EvolveCommand extends BaseCommand {
     let scope: string | undefined;
     if (options.directory) {
       scope = path.resolve(root, options.directory);
-      this.info(`🎯 Scoping evolution to: ${scope}`);
+      logger.info(`🎯 Scoping evolution to: ${scope}`);
       if (!fs.existsSync(scope)) {
-        this.error(`❌ Scoped directory does not exist: ${scope}`);
+        logger.error(`Scoped directory does not exist: ${scope}`);
         return;
       }
     }
 
     // 0. Discovery & Bundling
-    this.info('🔭 Discovering projects and bundling skills...');
+    logger.info('🔭 Discovering projects and bundling skills...');
     const projectScanner = new ProjectScanner(config, root);
     const projects = await projectScanner.scan(scope);
-    this.info(`✅ Found ${projects.length} projects.`);
+    logger.info(`✅ Found ${projects.length} projects.`);
     for (const p of projects) {
-      this.info(`   - ${p.name} (${path.relative(process.cwd(), p.path)})`);
+      logger.info(`   - ${p.name} (${path.relative(process.cwd(), p.path)})`);
     }
 
     // 0.5 Build Distributed Skill Index
@@ -83,7 +87,7 @@ export default class EvolveCommand extends BaseCommand {
             }
           }
         } catch (e) {
-          this.warn(`⚠️  Failed to read skill directory for project ${p.name}: ${e}`);
+          logger.warn(`Failed to read skill directory for project ${p.name}: ${e}`);
         }
       }
     }
@@ -103,11 +107,10 @@ export default class EvolveCommand extends BaseCommand {
     const architect = new Architect(resolvedSkillsDir, TMP_DIR);
     const plan = await architect.strategize(knowledgeGraph);
 
-    this.info('\n📋 Skill Plan Proposed by Architect:');
-    this.info(JSON.stringify(plan, null, 2));
+    logger.debug('Skill Plan Proposed by Architect:', plan);
 
     // 3. Execute Loop
-    this.info('\n🚀 Executing Skill Evolution Plan...');
+    logger.info('🚀 Executing Skill Evolution Plan...');
 
     for (const item of plan.plan) {
       if (item.type === 'create_skill' || item.type === 'update_skill') {
@@ -130,9 +133,9 @@ export default class EvolveCommand extends BaseCommand {
         let targetSkillPath = path.join(resolvedSkillsDir, skillName);
         if (distributedSkillIndex.has(skillName)) {
           targetSkillPath = distributedSkillIndex.get(skillName)!;
-          this.info(`📍 Targeting distributed skill at: ${targetSkillPath}`);
+          logger.info(`📍 Targeting distributed skill at: ${targetSkillPath}`);
         } else {
-          this.info(`📍 Targeting global skill at: ${targetSkillPath}`);
+          logger.info(`📍 Targeting global skill at: ${targetSkillPath}`);
         }
 
         const target: Target = {
@@ -154,13 +157,13 @@ export default class EvolveCommand extends BaseCommand {
           await stageInstructor(target, canonFile, driftFile, config);
           await hooks.onSkillUpdated(target);
         } catch (error) {
-          this.error(`❌ Failed to evolve skill ${skillName}: ${error}`);
+          logger.error(`Failed to evolve skill ${skillName}: ${error}`);
         }
       }
     }
 
-    this.info('\n📚 Updating Context Files...');
+    logger.info('📚 Updating Context Files...');
     await updateContextFiles(config);
-    this.success('✅ Context files updated.');
+    logger.success('Context files updated.');
   }
 }

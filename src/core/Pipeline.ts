@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import { Target } from '../types.js';
 import { ReskillConfig } from '../config.js';
 import { AgentRunner } from '../agents/AgentRunner.js';
+import { logger } from './Logger.js';
 
 const TMP_DIR = '.agent/tmp/reskill';
 
@@ -13,7 +14,7 @@ export function ensureTmpDir() {
 }
 
 export async function stageAuditor(target: Target, config: ReskillConfig): Promise<string> {
-  console.info(`🕵️  Auditing ${target.name}...`);
+  logger.info(`🕵️  Auditing ${target.name}...`);
   const outputFile = path.join(TMP_DIR, `${target.name.replace(/\s+/g, '-')}-canon.json`);
   if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
 
@@ -30,7 +31,7 @@ export async function stageCritic(
   canonFile: string,
   config: ReskillConfig,
 ): Promise<string> {
-  console.info(`⚖️  Critiquing ${target.name}...`);
+  logger.info(`⚖️  Critiquing ${target.name}...`);
   const outputFile = path.join(TMP_DIR, `${target.name.replace(/\s+/g, '-')}-drift.md`);
   if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
 
@@ -50,7 +51,7 @@ export async function stageInstructor(
   reportFile: string,
   config: ReskillConfig,
 ) {
-  console.info(`✍️  Rewriting ${target.name}...`);
+  logger.info(`✍️  Rewriting ${target.name}...`);
   await AgentRunner.run('Instructor', 'agents/instructor.md', {
     audit_file: canonFile,
     report_file: reportFile,
@@ -85,7 +86,7 @@ export async function updateContextFiles(config: ReskillConfig) {
 
   for (const contextFile of config.outputs.contextFiles) {
     if (!fs.existsSync(contextFile)) {
-      console.warn(`⚠️ Context file not found: ${contextFile}`);
+      logger.warn(`Context file not found: ${contextFile}`);
       continue;
     }
 
@@ -111,13 +112,11 @@ export async function updateContextFiles(config: ReskillConfig) {
       }
       newContent = preSection + '## 6. Skill Index' + newSectionContent + postSection;
     } else {
-      console.warn(
-        `⚠️ No <skills> tag or Skill Index section found in ${contextFile}. appending...`,
-      );
+      logger.warn(`No <skills> tag or Skill Index section found in ${contextFile}. appending...`);
       newContent = fileContent + '\n\n<skills>\n' + newSectionContent + '</skills>';
     }
 
     fs.writeFileSync(contextFile, newContent, 'utf-8');
-    console.info(`✅ Updated ${contextFile}`);
+    logger.info(`Updated ${contextFile}`);
   }
 }

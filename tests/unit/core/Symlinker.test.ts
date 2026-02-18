@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ensureSymlinks } from '../../../src/core/Symlinker.js';
 import * as fs from 'node:fs';
 import { ReskillConfig } from '../../../src/config.js';
+import { logger } from '../../../src/core/Logger.js';
 
 vi.mock('node:fs');
 
@@ -78,7 +79,7 @@ describe('Symlinker', () => {
       if (p.includes('target')) return true;
       return false;
     }) as unknown as typeof fs.existsSync);
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
     vi.mocked(fs.lstatSync).mockReturnValue({ isSymbolicLink: () => false } as unknown as fs.Stats);
 
     ensureSymlinks(mockConfig as unknown as ReskillConfig, mockCwd);
@@ -89,7 +90,7 @@ describe('Symlinker', () => {
 
   it('should skip if target exists and IS a symlink', () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
     vi.mocked(fs.lstatSync).mockReturnValue({ isSymbolicLink: () => true } as unknown as fs.Stats);
 
     ensureSymlinks(mockConfig as unknown as ReskillConfig, mockCwd);
@@ -105,17 +106,14 @@ describe('Symlinker', () => {
       return true; // Parent exists
     }) as unknown as typeof fs.existsSync);
 
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
     vi.mocked(fs.symlinkSync).mockImplementation(() => {
       throw new Error('Symlink failed');
     });
 
     ensureSymlinks(mockConfig as unknown as ReskillConfig, mockCwd);
 
-    expect(errorSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Failed to create symlink'),
-      expect.any(Error),
-    );
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to create symlink'));
     errorSpy.mockRestore();
   });
 });

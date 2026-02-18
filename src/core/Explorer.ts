@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { AgentRunner } from '../agents/AgentRunner.js';
 import { Project } from './ProjectScanner.js';
+import { logger } from './Logger.js';
 
 interface ScannedProject {
   name: string;
@@ -25,7 +26,7 @@ export class Explorer {
   }
 
   async discover(): Promise<string> {
-    console.info('🔍 Explorer: Analyzing projects...');
+    logger.info('🔍 Explorer: Analyzing projects...');
 
     const scannedProjects = this.scanProjects();
 
@@ -47,7 +48,7 @@ export class Explorer {
   private scanProjects(): ScannedProject[] {
     return this.projects.map((project) => {
       if (!fs.existsSync(project.path)) {
-        console.warn(`⚠️ Project directory not found: ${project.path}`);
+        logger.warn(`Project directory not found: ${project.path}`);
         return {
           name: project.name,
           path: project.path,

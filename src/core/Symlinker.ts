@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { ReskillConfig } from '../config.js';
+import { logger } from './Logger.js';
 
 export function ensureSymlinks(
   config: ReskillConfig,
@@ -38,14 +39,14 @@ export function ensureSymlinks(
       try {
         const relativeTarget = path.relative(linkDir, skillsAbsPath);
         fs.symlinkSync(relativeTarget, linkAbsPath, 'dir');
-        console.info(`🔗 Created symlink: ${linkTarget} -> ${targetDir || config.skillsDir}`);
+        logger.info(`🔗 Created symlink: ${linkTarget} -> ${targetDir || config.skillsDir}`);
       } catch (e) {
-        console.error(`❌ Failed to create symlink at ${linkTarget}:`, e);
+        logger.error(`Failed to create symlink at ${linkTarget}: ${e}`);
       }
     } else {
       const stats = fs.lstatSync(linkAbsPath);
       if (!stats.isSymbolicLink()) {
-        console.warn(`⚠️  Target ${linkTarget} exists and is NOT a symlink. Skipping.`);
+        logger.warn(`Target ${linkTarget} exists and is NOT a symlink. Skipping.`);
       }
     }
 
@@ -57,6 +58,6 @@ export function ensureSymlinks(
 
   if (gitignoreUpdated) {
     fs.writeFileSync(gitignorePath, gitignoreContent, 'utf-8');
-    console.info('📝 Updated .gitignore with new symlinks.');
+    logger.info('📝 Updated .gitignore with new symlinks.');
   }
 }

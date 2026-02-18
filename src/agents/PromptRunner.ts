@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import nunjucks from 'nunjucks';
 import { spawn, execSync } from 'node:child_process';
 import readline from 'node:readline';
+import { logger } from '../core/Logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_PROMPTS_DIR = path.join(__dirname, '../../prompts');
@@ -41,7 +42,7 @@ export class PromptRunner {
 
     try {
       await fs.access(promptFile);
-      console.info(`[Agent] Using user override: ${promptFile}`);
+      logger.debug(`[Agent] Using user override: ${promptFile}`);
       usingOverride = true;
     } catch {
       // Fallback to package prompts
@@ -74,14 +75,14 @@ export class PromptRunner {
 
     env.addGlobal('context', (targetPath: string) => {
       try {
-        console.info(`[Context] Analyzing codebase at: ${targetPath}`);
+        logger.debug(`[Context] Analyzing codebase at: ${targetPath}`);
         const output = execSync(
           `npx -y repomix --stdout --quiet --style xml --include "${targetPath}/**/*" --ignore "**/node_modules,**/dist"`,
           { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'inherit'] },
         );
         return `<CODEBASE_CONTEXT path="${targetPath}">\n${output}\n</CODEBASE_CONTEXT>`;
       } catch {
-        console.error(`[Context] Error running repomix on ${targetPath}`);
+        logger.error(`[Context] Error running repomix on ${targetPath}`);
         return `[Error generating context for ${targetPath}]`;
       }
     });
@@ -92,7 +93,7 @@ export class PromptRunner {
         const content = readFileSync(resolvedPath, 'utf-8');
         return content;
       } catch {
-        console.error(`[Read] Error reading file: ${relativePath}`);
+        logger.error(`[Read] Error reading file: ${relativePath}`);
         return `[Error reading file ${relativePath}]`;
       }
     });
@@ -106,7 +107,7 @@ export class PromptRunner {
       );
     }
 
-    console.info(`[Render] Rendering template with variables: ${JSON.stringify(argv, null, 2)}`);
+    logger.debug('[Render] Rendering template with variables:', argv);
 
     let renderedPrompt: string;
     try {
@@ -119,14 +120,14 @@ export class PromptRunner {
 
     const tempFile = path.join(os.tmpdir(), `.temp_prompt_${Date.now()}.md`);
     await fs.writeFile(tempFile, renderedPrompt, 'utf-8');
-    console.info(`[Buffer] Wrote active prompt to ${tempFile}`);
+    logger.debug(`[Buffer] Wrote active prompt to ${tempFile}`);
 
     const models = modelsArg
       .split(',')
       .map((m: string) => m.trim())
       .filter(Boolean);
 
-    console.info(`[Agent] Model rotation strategy: [${models.join(', ')}]`);
+    logger.debug(`[Agent] Model rotation strategy: [${models.join(', ')}]`);
 
     let currentPrompt = renderedPrompt;
     let finalCode = 0;
@@ -145,7 +146,7 @@ export class PromptRunner {
         }
 
         if (result.shouldRetry) {
-          console.info(`[Agent] Switching to next model...`);
+          logger.debug(`[Agent] Switching to next model...`);
           continue;
         } else {
           finalCode = result.code;
@@ -155,7 +156,7 @@ export class PromptRunner {
 
       if (!success) {
         if (finalCode === 0) finalCode = 1;
-        console.error(`[Agent] \u274C All attempts failed.`);
+        logger.error(`[Agent] All attempts failed.`);
         break;
       }
 
@@ -176,7 +177,7 @@ export class PromptRunner {
     try {
       if (existsSync(tempFile)) {
         await fs.unlink(tempFile);
-        console.info(`[Cleanup] Removed active prompt file`);
+        logger.debug(`[Cleanup] Removed active prompt file`);
       }
     } catch {
       // ignore
@@ -189,7 +190,7 @@ export class PromptRunner {
 
   private static runGemini(model: string, input: string): Promise<GeminiResult> {
     return new Promise((resolve) => {
-      console.info(`[Agent] Attempting with model: \x1b[36m${model}\x1b[0m...`);
+      logger.debug(`[Agent] Attempting with model: ${model}...`);
       const start = Date.now();
 
       const child = spawn(`gemini --yolo --model ${model}`, {
@@ -224,9 +225,7 @@ export class PromptRunner {
           stderrData.includes('ResourceExhausted');
 
         if (exitCode !== 0 && isExhausted) {
-          console.warn(
-            `[Agent] \u26A0\ufe0f Model ${model} exhausted (429). Duration: ${duration}ms`,
-          );
+          logger.warn(`[Agent] Model ${model} exhausted (429). Duration: ${duration}ms`);
           resolve({ code: exitCode, shouldRetry: true, output: stdoutData });
         } else {
           resolve({ code: exitCode, shouldRetry: false, output: stdoutData });
@@ -234,7 +233,7 @@ export class PromptRunner {
       });
 
       child.on('error', (err) => {
-        console.error(
+        logger.error(
           `[Agent] Failed to spawn Gemini (${model}): ${err instanceof Error ? err.message : String(err)}`,
         );
         resolve({ code: 1, shouldRetry: false, output: '' });
@@ -248,7 +247,7 @@ export class PromptRunner {
       output: process.stdout,
     });
     return new Promise<string>((resolve) => {
-      console.info('\n(Type "exit" or "quit" to end the session)');
+      logger.info('\n(Type "exit" or "quit" to end the session)');
       rl.question('> ', (ans) => {
         rl.close();
         resolve(ans);
