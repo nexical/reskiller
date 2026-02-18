@@ -3,6 +3,7 @@ import RefineCommand from '../../../../src/commands/skill/refine.js';
 import * as configMod from '../../../../src/config.js';
 import { hooks } from '../../../../src/core/Hooks.js';
 import * as Pipeline from '../../../../src/core/Pipeline.js';
+import { ProjectScanner } from '../../../../src/core/ProjectScanner.js';
 import { CLI } from '@nexical/cli-core';
 import * as fs from 'node:fs';
 // import * as path from 'node:path';
@@ -12,6 +13,7 @@ vi.mock('../../../../src/core/Hooks.js');
 vi.mock('../../../../src/core/Pipeline.js', async () => {
   return await import('../../../../tests/unit/mocks/Pipeline.js');
 });
+vi.mock('../../../../src/core/ProjectScanner.js');
 vi.mock('node:fs');
 
 // Mock Initializer dynamic import
@@ -27,7 +29,7 @@ const mockCli = {} as unknown as CLI;
 describe('RefineCommand', () => {
   let command: RefineCommand;
   const mockConfig = {
-    skillsDir: 'skills',
+    outputs: { contextFiles: [] },
   };
 
   beforeEach(() => {
@@ -49,6 +51,16 @@ describe('RefineCommand', () => {
     // Default FS mocks
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(fs.mkdirSync).mockReturnValue(undefined);
+
+    vi.mocked(ProjectScanner).mockImplementation(function () {
+      return {
+        scan: vi
+          .fn()
+          .mockResolvedValue([
+            { name: 'core', path: '/mock/root', skillDir: '/mock/root/.skills' },
+          ]),
+      } as unknown as ProjectScanner;
+    });
   });
 
   it('should run refinement pipeline', async () => {

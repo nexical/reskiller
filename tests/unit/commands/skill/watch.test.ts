@@ -23,7 +23,6 @@ const mockCli = {} as unknown as CLI;
 describe('WatchCommand', () => {
   let command: WatchCommand;
   const mockConfig = {
-    skillsDir: 'skills',
     constitution: { architecture: 'Test' },
     outputs: { contextFiles: [] },
     licenseKey: 'valid',

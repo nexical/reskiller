@@ -55,7 +55,6 @@ describe('WatchCommand Integration', () => {
 
     (command as any).config = {
       reskill: {
-        skillsDir: 'skills',
         discovery: { root: '.', markers: ['.skills'], ignore: [], depth: 5 },
         outputs: { contextFiles: [], symlinks: [] },
         constitution: { architecture: 'Test' },

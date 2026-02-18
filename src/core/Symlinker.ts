@@ -11,9 +11,7 @@ export function ensureSymlinks(
   const symlinks = config.outputs?.symlinks;
   if (!symlinks || symlinks.length === 0) return;
 
-  const skillsAbsPath = targetDir
-    ? path.resolve(cwd, targetDir)
-    : path.resolve(cwd, config.skillsDir);
+  const skillsAbsPath = path.resolve(cwd, targetDir || '.reskill/skills');
   let gitignoreUpdated = false;
   const gitignorePath = path.join(cwd, '.gitignore');
   let gitignoreContent = '';
@@ -39,7 +37,7 @@ export function ensureSymlinks(
       try {
         const relativeTarget = path.relative(linkDir, skillsAbsPath);
         fs.symlinkSync(relativeTarget, linkAbsPath, 'dir');
-        logger.info(`🔗 Created symlink: ${linkTarget} -> ${targetDir || config.skillsDir}`);
+        logger.info(`🔗 Created symlink: ${linkTarget} -> ${targetDir || '.reskill/skills'}`);
       } catch (e) {
         logger.error(`Failed to create symlink at ${linkTarget}: ${e}`);
       }

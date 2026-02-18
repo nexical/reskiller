@@ -8,7 +8,6 @@ vi.mock('node:fs');
 
 describe('Symlinker', () => {
   const mockConfig = {
-    skillsDir: '.agent/skills',
     outputs: {
       symlinks: ['target/link'],
     },
