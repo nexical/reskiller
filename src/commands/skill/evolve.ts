@@ -51,9 +51,7 @@ export default class EvolveCommand extends BaseCommand {
 
     ensureTmpDir();
 
-    // Resolve skillsDir
     const root = this.projectRoot || process.cwd();
-    const resolvedSkillsDir = path.resolve(root, config.skillsDir);
 
     // Resolve scope directory if provided
     let scope: string | undefined;
@@ -83,7 +81,9 @@ export default class EvolveCommand extends BaseCommand {
           const skillsInProject = fs.readdirSync(p.skillDir, { withFileTypes: true });
           for (const dirent of skillsInProject) {
             if (dirent.isDirectory()) {
-              distributedSkillIndex.set(dirent.name, path.join(p.skillDir, dirent.name));
+              const skillName = dirent.name;
+              const compositeName = `${p.name}-${skillName}`;
+              distributedSkillIndex.set(compositeName, path.join(p.skillDir, skillName));
             }
           }
         } catch (e) {
@@ -104,7 +104,7 @@ export default class EvolveCommand extends BaseCommand {
     const knowledgeGraph = await explorer.discover();
 
     // 2. Strategize
-    const architect = new Architect(resolvedSkillsDir, TMP_DIR);
+    const architect = new Architect(bundleDir, TMP_DIR);
     const plan = await architect.strategize(knowledgeGraph);
 
     logger.debug('Skill Plan Proposed by Architect:', plan);
@@ -130,12 +130,26 @@ export default class EvolveCommand extends BaseCommand {
         }
 
         // RESOLVE TARGET PATH
-        let targetSkillPath = path.join(resolvedSkillsDir, skillName);
+        let targetSkillPath: string;
         if (distributedSkillIndex.has(skillName)) {
           targetSkillPath = distributedSkillIndex.get(skillName)!;
           logger.info(`📍 Targeting distributed skill at: ${targetSkillPath}`);
         } else {
-          logger.info(`📍 Targeting global skill at: ${targetSkillPath}`);
+          // Fallback: This case shouldn't happen much with the new flattened architecture since everything is bundled
+          // but if we are creating a NEW skill that isn't in the index yet, we might need a default project.
+          // For now, let's assume skills are created in the first project encountered or a default if not found.
+          if (projects.length === 0) {
+            logger.error(`Cannot create skill ${skillName}: no projects found to host it.`);
+            continue;
+          }
+          const defaultProject = projects[0];
+          // We probably want to split the skillName back to project-skill if it follows the pattern
+          // or just put it in the first project's .skills directory.
+          targetSkillPath = path.join(
+            defaultProject.skillDir,
+            skillName.replace(`${defaultProject.name}-`, ''),
+          );
+          logger.info(`📍 Targeting NEW skill at: ${targetSkillPath}`);
         }
 
         const target: Target = {

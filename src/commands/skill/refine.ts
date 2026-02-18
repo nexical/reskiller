@@ -2,6 +2,7 @@ import { BaseCommand, type CommandDefinition } from '@nexical/cli-core';
 import { getReskillConfig } from '../../config.js';
 import { ensureSymlinks } from '../../core/Symlinker.js';
 import { hooks } from '../../core/Hooks.js';
+import { ProjectScanner } from '../../core/ProjectScanner.js';
 import { logger } from '../../core/Logger.js';
 import {
   ensureTmpDir,
@@ -59,11 +60,31 @@ export default class RefineCommand extends BaseCommand {
     this.info(`Refining ${skillName} using ${modulePath}...`);
 
     const root = this.projectRoot || process.cwd();
-    const resolvedSkillsDir = path.resolve(root, config.skillsDir);
+    const projectScanner = new ProjectScanner(config, root);
+    const projects = await projectScanner.scan();
+
+    // Try to find if this skill already exists in any project
+    let targetSkillPath: string | undefined;
+    for (const p of projects) {
+      const potentialPath = path.join(p.skillDir, skillName);
+      if (fs.existsSync(potentialPath)) {
+        targetSkillPath = potentialPath;
+        break;
+      }
+    }
+
+    // Fallback: Use the first project's .skills directory or the root's .skills
+    if (!targetSkillPath) {
+      if (projects.length > 0) {
+        targetSkillPath = path.join(projects[0].skillDir, skillName);
+      } else {
+        targetSkillPath = path.join(root, '.skills', skillName);
+      }
+    }
 
     const target = {
       name: skillName,
-      skillPath: path.join(resolvedSkillsDir, skillName),
+      skillPath: targetSkillPath,
       truthPath: modulePath,
     };
 

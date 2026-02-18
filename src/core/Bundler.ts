@@ -28,31 +28,26 @@ export class Bundler {
     for (const project of projects) {
       await this.linkProjectSkills(project);
     }
-
-    // Bundle Global Skills (if they exist in root skillsDir and it's not already covered)
-    // NOTE: If the root itself is scanned as a project, its skills will be bundled under its name (e.g. "reskill" or "nexical-core").
-    // However, users might expect "global" skills to be at the top level or a specific _global folder.
-    // Let's explicitly handle the configured `skillsDir` (Legacy global/root skills)
-    const globalSkillsPath = path.resolve(this.cwd, this.config.skillsDir);
-    if (fs.existsSync(globalSkillsPath)) {
-      // If the global skills path is NOT one of the project skill dirs, link it.
-      const isProjectSkill = projects.some((p) => p.skillDir === globalSkillsPath);
-      if (!isProjectSkill) {
-        await this.createSymlink(globalSkillsPath, path.join(this.bundleDir, '_global'));
-      }
-    }
   }
 
   private async linkProjectSkills(project: Project) {
-    const targetDir = path.join(this.bundleDir, project.name);
+    if (!fs.existsSync(project.skillDir)) return;
 
-    // Safety check: ensure we don't overwrite if multiple projects have same name (unlikely with unique keys, but possible with simple names)
-    if (fs.existsSync(targetDir)) {
-      logger.warn(`Collision detected for project name: ${project.name}. Creating unique alias.`);
-      // Simple alias logic: append hash or path seq? Let's just warn for now.
+    try {
+      const skills = fs.readdirSync(project.skillDir, { withFileTypes: true });
+      for (const dirent of skills) {
+        if (dirent.isDirectory()) {
+          const skillName = dirent.name;
+          const targetName = `${project.name}-${skillName}`;
+          const targetPath = path.join(this.bundleDir, targetName);
+          const sourcePath = path.join(project.skillDir, skillName);
+
+          await this.createSymlink(sourcePath, targetPath);
+        }
+      }
+    } catch (e) {
+      logger.warn(`Failed to read skills from ${project.skillDir}: ${e}`);
     }
-
-    await this.createSymlink(project.skillDir, targetDir);
   }
 
   private async createSymlink(target: string, pathLike: string) {

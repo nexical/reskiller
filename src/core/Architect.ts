@@ -5,11 +5,11 @@ import { SkillPlan } from '../types.js';
 import { logger } from './Logger.js';
 
 export class Architect {
-  private skillsDir: string;
+  private bundleDir: string;
   private tmpDir: string;
 
-  constructor(skillsDir: string, tmpDir: string) {
-    this.skillsDir = skillsDir;
+  constructor(bundleDir: string, tmpDir: string) {
+    this.bundleDir = bundleDir;
     this.tmpDir = tmpDir;
   }
 
@@ -35,13 +35,13 @@ export class Architect {
   }
 
   private listSkills() {
-    if (!fs.existsSync(this.skillsDir)) return [];
+    if (!fs.existsSync(this.bundleDir)) return [];
     return fs
-      .readdirSync(this.skillsDir, { withFileTypes: true })
+      .readdirSync(this.bundleDir, { withFileTypes: true })
       .filter((d) => d.isDirectory())
       .map((d) => ({
         name: d.name,
-        path: path.join(this.skillsDir, d.name),
+        path: path.join(this.bundleDir, d.name),
       }));
   }
 }

@@ -30,7 +30,7 @@ Reskill operates on a cyclical **Evolutionary Loop**: `Explore -> Strategize -> 
 
 2.  **The Architect (Strategy)**
     - **Role**: The "Brain" of the system.
-    - **Function**: Compares the **Knowledge Graph** against the **Current Skills** (existing documentation in `.agent/skills`). It identifies gaps (missing skills), rot (outdated skills), and redundancy.
+    - **Function**: Compares the **Knowledge Graph** against the **Current Skills** (bundled in `.reskill/skills`). It identifies gaps (missing skills), rot (outdated skills), and redundancy.
     - **Output**: A **Skill Plan** (`create`, `update`, `delete`, `merge`).
 
 3.  **The Pipeline (Orchestration)**
@@ -83,7 +83,7 @@ To function correctly, Reskill imposes the following constraints on the target c
 
 1.  **Distinct Kernel vs. User Space**: behavior must be separable into "Truth" (Core/Platform) and "Implementation" (Modules/Apps).
 2.  **Constitution Files**: The system requires a `constitution.architecture` file (e.g., `ARCHITECTURE.md`) to ground its reasoning.
-3.  **Structured Skills**: Skills are strictly organized as directories in `skillsDir` (default `.agent/skills`), containing a `SKILL.md` and optional `templates/` or `examples/`.
+3.  **Structured Skills**: Skills are strictly organized as directories inside `.skills` folders in each project. They are aggregated into a flattened structure: `.reskill/skills/{project-name}-{skill}/SKILL.md`.
 4.  **Agent Environment**: The system relies on `gemini` CLI being available in the environment (or mocked via `PromptRunner`).
 
 ---
@@ -96,7 +96,6 @@ Reskill is configured via the `reskill` key in `nexical.yaml` (or the project's 
 
 | Field                       | Type       | Description                                                                  |
 | :-------------------------- | :--------- | :--------------------------------------------------------------------------- |
-| `skillsDir`                 | `string`   | Directory where skills are stored. Default: `skills`.                        |
 | `constitution`              | `object`   | References to global governance documents.                                   |
 | `constitution.architecture` | `string`   | Path to the main architecture doc (required).                                |
 | `constitution.patterns`     | `string`   | Path to the patterns/modules doc (optional).                                 |

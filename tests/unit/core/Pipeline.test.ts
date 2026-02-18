@@ -9,6 +9,7 @@ import {
 import { AgentRunner } from '../../../src/agents/AgentRunner.js';
 import { logger } from '../../../src/core/Logger.js';
 import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { ReskillConfig } from '../../../src/config.js';
 
 vi.mock('node:fs');
@@ -16,12 +17,14 @@ vi.mock('../../../src/agents/AgentRunner.js');
 
 describe('Pipeline', () => {
   const mockConfig = {
-    skillsDir: '/mock/skills',
     outputs: {
       contextFiles: ['/mock/context.md'],
     },
     constitution: { architecture: 'Test' },
   };
+
+  const mockCwd = '/mock/cwd';
+  const mockBundleDir = path.join(mockCwd, '.reskill', 'skills');
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -83,11 +86,16 @@ describe('Pipeline', () => {
     it('should update context files with skill index', async () => {
       // Mock readdirSync for skills
       vi.mocked(fs.readdirSync).mockImplementation(((dir: string) => {
-        if (dir === mockConfig.skillsDir) return ['skill1'];
+        if (dir === mockBundleDir) return ['skill1'];
         return [];
       }) as unknown as typeof fs.readdirSync);
       vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as unknown as fs.Stats);
-      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.existsSync).mockImplementation(((p: string) => {
+        if (p === mockBundleDir) return true;
+        if (p === '/mock/context.md') return true;
+        if (p.endsWith('SKILL.md')) return true;
+        return false;
+      }) as unknown as typeof fs.existsSync);
       vi.mocked(fs.readFileSync).mockImplementation(((p: string | Buffer | URL) => {
         const pathStr = p.toString();
         if (pathStr.endsWith('SKILL.md')) return 'description: Test Skill Description';
@@ -95,7 +103,7 @@ describe('Pipeline', () => {
         return '';
       }) as unknown as typeof fs.readFileSync);
 
-      await updateContextFiles(mockConfig as unknown as ReskillConfig);
+      await updateContextFiles(mockConfig as unknown as ReskillConfig, '/mock/cwd');
 
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         '/mock/context.md',

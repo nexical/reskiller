@@ -70,7 +70,6 @@ describe('RefineCommand Integration', () => {
 
     (command as any).config = {
       reskill: {
-        skillsDir: 'skills',
         discovery: { root: '.', markers: ['.skills'], ignore: [], depth: 5 },
         outputs: { contextFiles: [], symlinks: [] },
         constitution: { architecture: 'Test' },
@@ -88,6 +87,9 @@ describe('RefineCommand Integration', () => {
     const moduleDir = path.join(projectDir, 'modules/target-mod');
     fs.mkdirSync(moduleDir, { recursive: true });
 
+    // Explicitly create .skills dir for projectDir so it is picked up as a host
+    fs.mkdirSync(path.join(projectDir, '.skills'), { recursive: true });
+
     await command.run({ skillName: 'target-skill', modulePath: moduleDir });
 
     if (vi.mocked(command.error).mock.calls.length > 0) {
@@ -99,8 +101,8 @@ describe('RefineCommand Integration', () => {
 
     expect(command.success).toHaveBeenCalledWith(expect.stringContaining('Refinement complete'));
 
-    // Check skill dir creation
-    const skillDir = path.join(projectDir, 'skills/target-skill');
+    // Check skill dir creation (it should be in .skills of projectDir)
+    const skillDir = path.join(projectDir, '.skills/target-skill');
     expect(fs.existsSync(skillDir)).toBe(true);
   });
 });

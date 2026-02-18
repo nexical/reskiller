@@ -61,15 +61,21 @@ export async function stageInstructor(
   });
 }
 
-export async function updateContextFiles(config: ReskillConfig) {
-  const skills = fs.readdirSync(config.skillsDir).filter((file) => {
-    return fs.statSync(path.join(config.skillsDir, file)).isDirectory();
+export async function updateContextFiles(config: ReskillConfig, cwd: string = process.cwd()) {
+  const bundleDir = path.join(cwd, '.reskill', 'skills');
+  if (!fs.existsSync(bundleDir)) {
+    logger.warn('Bundle directory not found, skipping context update.');
+    return;
+  }
+
+  const skills = fs.readdirSync(bundleDir).filter((file) => {
+    return fs.statSync(path.join(bundleDir, file)).isDirectory();
   });
 
   const skillLines: string[] = [];
 
   for (const skill of skills) {
-    const skillMdPath = path.join(config.skillsDir, skill, 'SKILL.md');
+    const skillMdPath = path.join(bundleDir, skill, 'SKILL.md');
     if (fs.existsSync(skillMdPath)) {
       const content = fs.readFileSync(skillMdPath, 'utf-8');
       // Simple regex to parse frontmatter description

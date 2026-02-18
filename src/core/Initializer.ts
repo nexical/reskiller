@@ -14,15 +14,9 @@ export class Initializer {
     ensureSymlinksFn: (config: ReskillConfig) => void = ensureSymlinks,
   ) {
     // Resolve paths relative to project root
-    const skillsDir = path.resolve(rootDir, config.skillsDir);
     const userPromptsDir = path.resolve(rootDir, '.reskiller/prompts');
 
-    // 1. Create skills directory
-    if (!fs.existsSync(skillsDir)) {
-      fs.mkdirSync(skillsDir, { recursive: true });
-    }
-
-    // 2. Create prompts directory and copy defaults
+    // 1. Create prompts directory and copy defaults
     if (!fs.existsSync(userPromptsDir)) {
       fs.mkdirSync(userPromptsDir, { recursive: true });
     }

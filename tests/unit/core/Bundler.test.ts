@@ -6,9 +6,7 @@ import { ReskillConfig } from '../../../src/config.js';
 vi.mock('node:fs');
 
 describe('Bundler', () => {
-  const mockConfig = {
-    skillsDir: 'skills',
-  };
+  const mockConfig = {};
   const mockCwd = '/mock/cwd';
 
   beforeEach(() => {
@@ -31,27 +29,25 @@ describe('Bundler', () => {
     );
   });
 
-  it('should symlink project skills', async () => {
+  it('should symlink individual project skills with project-name prefix', async () => {
     const projects = [{ name: 'core', path: '/mock/core', skillDir: '/mock/core/.skills' }];
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readdirSync).mockReturnValue([
+      { name: 'auth', isDirectory: () => true },
+      { name: 'db', isDirectory: () => true },
+    ] as any);
+
     const bundler = new Bundler(mockConfig as unknown as ReskillConfig, mockCwd);
     await bundler.bundle(projects);
 
     expect(fs.symlinkSync).toHaveBeenCalledWith(
-      '/mock/core/.skills',
-      expect.stringContaining('core'),
+      '/mock/core/.skills/auth',
+      expect.stringContaining('core-auth'),
       'dir',
     );
-  });
-
-  it('should bundle global skills if they exist and are not already in projects', async () => {
-    vi.mocked(fs.existsSync).mockImplementation((p) => (p as string).endsWith('skills'));
-
-    const bundler = new Bundler(mockConfig as unknown as ReskillConfig, mockCwd);
-    await bundler.bundle([]);
-
     expect(fs.symlinkSync).toHaveBeenCalledWith(
-      expect.stringContaining('skills'),
-      expect.stringContaining('_global'),
+      '/mock/core/.skills/db',
+      expect.stringContaining('core-db'),
       'dir',
     );
   });

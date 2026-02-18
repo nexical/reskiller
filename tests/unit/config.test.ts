@@ -5,7 +5,6 @@ describe('config', () => {
   it('should extract valid configuration from global config', () => {
     const globalConfig = {
       reskill: {
-        skillsDir: 'custom-skills',
         constitution: { architecture: 'Arch' },
         discovery: {
           root: '.',
@@ -42,7 +41,6 @@ describe('config', () => {
     };
 
     const config = getReskillConfig(minimalConfig);
-    expect(config.skillsDir).toBe('skills');
     expect(config.discovery.root).toBe('.');
   });
 });

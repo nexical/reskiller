@@ -102,8 +102,7 @@ describe('EvolveCommand Integration', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (command as any).config = {
       reskill: {
-        skillsDir: 'skills',
-        discovery: { root: '.', markers: ['.skills'], ignore: [], depth: 5 },
+        discovery: { root: projectDir, markers: ['.skills'], ignore: [], depth: 5 },
         outputs: { contextFiles: [], symlinks: [] },
         constitution: { architecture: 'Test' },
       },
@@ -136,7 +135,8 @@ describe('EvolveCommand Integration', () => {
     expect(command.success).toHaveBeenCalledWith(expect.stringContaining('Context files updated'));
 
     // Verify skill directory creation (Architect planned 'test-skill')
-    const skillDir = path.join(projectDir, 'skills/test-skill');
+    // It should be created in the .skills directory of the project
+    const skillDir = path.join(projectDir, '.skills/test-skill');
     expect(fs.existsSync(skillDir)).toBe(true);
   });
 

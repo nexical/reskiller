@@ -7,7 +7,7 @@ vi.mock('node:fs');
 vi.mock('../../../src/agents/AgentRunner.js');
 
 describe('Architect', () => {
-  const mockSkillsDir = '/mock/skills';
+  const mockBundleDir = '/mock/.reskill/skills';
   const mockTmpDir = '/mock/tmp';
   const mockGraphPath = '/mock/graph.json';
 
@@ -21,12 +21,12 @@ describe('Architect', () => {
   });
 
   it('should instantiate correctly', () => {
-    const architect = new Architect(mockSkillsDir, mockTmpDir);
+    const architect = new Architect(mockBundleDir, mockTmpDir);
     expect(architect).toBeDefined();
   });
 
   it('should strategize and return a plan', async () => {
-    const architect = new Architect(mockSkillsDir, mockTmpDir);
+    const architect = new Architect(mockBundleDir, mockTmpDir);
     const mockPlan = { plan: ['skill1'] };
 
     // Mock readdirSync withFileTypes result
@@ -34,7 +34,7 @@ describe('Architect', () => {
       dir: string,
       opts: { withFileTypes?: boolean },
     ) => {
-      if (dir === mockSkillsDir && opts?.withFileTypes) {
+      if (dir === mockBundleDir && opts?.withFileTypes) {
         return [
           { name: 'existing-skill', isDirectory: () => true },
         ] as unknown as fs.Dirent<string>[];
@@ -62,7 +62,7 @@ describe('Architect', () => {
   });
 
   it('should return empty plan if output file not found', async () => {
-    const architect = new Architect(mockSkillsDir, mockTmpDir);
+    const architect = new Architect(mockBundleDir, mockTmpDir);
 
     vi.mocked(fs.existsSync).mockImplementation(((p: string) => {
       if (p.endsWith('skill-plan.json')) return false;
@@ -73,10 +73,10 @@ describe('Architect', () => {
     expect(result).toEqual({ plan: [] });
   });
 
-  it('should handle missing skills directory gracefully', async () => {
-    const architect = new Architect(mockSkillsDir, mockTmpDir);
+  it('should handle missing bundle directory gracefully', async () => {
+    const architect = new Architect(mockBundleDir, mockTmpDir);
 
-    vi.mocked(fs.existsSync).mockReturnValue(false); // skills dir missing
+    vi.mocked(fs.existsSync).mockReturnValue(false); // bundle dir missing
 
     await architect.strategize(mockGraphPath);
 
@@ -87,14 +87,14 @@ describe('Architect', () => {
   });
 
   it('should filter out non-directories in listSkills', async () => {
-    const architect = new Architect(mockSkillsDir, mockTmpDir);
+    const architect = new Architect(mockBundleDir, mockTmpDir);
 
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(fs.readdirSync).mockImplementation(((
       dir: string,
       opts: { withFileTypes?: boolean },
     ) => {
-      if (dir === mockSkillsDir && opts?.withFileTypes) {
+      if (dir === mockBundleDir && opts?.withFileTypes) {
         return [
           { name: 'good-skill', isDirectory: () => true },
           { name: 'README.md', isDirectory: () => false },

@@ -3,13 +3,16 @@ import * as path from 'node:path';
 import * as os from 'node:os';
 import { afterAll, beforeAll } from 'vitest';
 
-export const TEST_TMP_DIR = path.join(os.tmpdir(), 'reskill-integration-tests');
+export const TEST_TMP_DIR = path.join(
+  os.tmpdir(),
+  'reskill-integration-tests',
+  Math.random().toString(36).substring(2, 10),
+);
 
 export function setupIntegrationTest() {
-  if (fs.existsSync(TEST_TMP_DIR)) {
-    fs.rmSync(TEST_TMP_DIR, { recursive: true, force: true });
+  if (!fs.existsSync(TEST_TMP_DIR)) {
+    fs.mkdirSync(TEST_TMP_DIR, { recursive: true });
   }
-  fs.mkdirSync(TEST_TMP_DIR, { recursive: true });
 }
 
 export function teardownIntegrationTest() {
@@ -25,7 +28,6 @@ export function createTestProject(projectName: string, config: Record<string, un
   // Create nexical.yaml
   const nexicalYaml = `
 reskill:
-  skillsDir: "skills"
   discovery:
     root: "."
     ignore: ["node_modules"]

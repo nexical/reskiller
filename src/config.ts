@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
 export const ReskillConfigSchema = z.object({
-  skillsDir: z.string().default('skills'),
   constitution: z.object({
     architecture: z.string(),
     patterns: z.string().optional(),

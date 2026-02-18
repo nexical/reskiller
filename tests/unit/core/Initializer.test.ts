@@ -10,7 +10,6 @@ vi.mock('node:fs');
 
 describe('Initializer', () => {
   const mockConfig = {
-    skillsDir: 'skills',
     outputs: { symlinks: [] },
   } as unknown as ReskillConfig;
 
@@ -26,27 +25,6 @@ describe('Initializer', () => {
   });
 
   const mockRootDir = '/mock/root';
-
-  it('should create skills directory if missing', () => {
-    Initializer.initialize(mockConfig, mockRootDir);
-    expect(fs.mkdirSync).toHaveBeenCalledWith(path.resolve(mockRootDir, 'skills'), {
-      recursive: true,
-    });
-  });
-
-  it('should not create skills directory if exists', () => {
-    // Mock existsSync to return true for the resolved path
-    vi.mocked(fs.existsSync).mockImplementation(
-      (p) => p.toString() === path.resolve(mockRootDir, 'skills'),
-    );
-
-    Initializer.initialize(mockConfig, mockRootDir);
-
-    expect(fs.mkdirSync).not.toHaveBeenCalledWith(
-      path.resolve(mockRootDir, 'skills'),
-      expect.any(Object),
-    );
-  });
 
   it('should create prompts directory if missing', () => {
     Initializer.initialize(mockConfig, mockRootDir);

@@ -28,7 +28,6 @@ describe('EvolveCommand', () => {
   let command: EvolveCommand;
   const mockConfig = {
     discovery: { root: '.', markers: ['.skills'], ignore: [], depth: 1 },
-    skillsDir: 'skills',
     constitution: { architecture: 'Test' },
     outputs: { contextFiles: [], symlinks: [] },
   } as configMod.ReskillConfig;
@@ -53,9 +52,10 @@ describe('EvolveCommand', () => {
     vi.mocked(fs.mkdirSync).mockReturnValue(undefined);
 
     // Class mocks
+    const mockProjects = [{ name: 'proj1', path: '/root/proj1', skillDir: '/root/proj1/.skills' }];
     vi.mocked(ProjectScanner).mockImplementation(function () {
       return {
-        scan: vi.fn().mockResolvedValue([]),
+        scan: vi.fn().mockResolvedValue(mockProjects),
       } as unknown as ProjectScanner;
     });
 
@@ -180,11 +180,16 @@ describe('EvolveCommand', () => {
     }) as any);
 
     // Architect plans to update this distributed skill
+    // With the new naming convention, the skill name in the plan should be "proj1-distributed-skill"
     vi.mocked(Architect).mockImplementation(function () {
       return {
         strategize: vi.fn().mockResolvedValue({
           plan: [
-            { type: 'update_skill', target_skill: 'distributed-skill', exemplar_module: 'path' },
+            {
+              type: 'update_skill',
+              target_skill: 'proj1-distributed-skill',
+              exemplar_module: 'path',
+            },
           ],
         }),
       } as unknown as Architect;
@@ -195,9 +200,9 @@ describe('EvolveCommand', () => {
     expect(command.info).toHaveBeenCalledWith(
       expect.stringContaining('Targeting distributed skill'),
     );
-    // Verify it targets the distributed path, not global
-    expect(fs.mkdirSync).not.toHaveBeenCalledWith(
-      path.join('skills', 'distributed-skill'),
+    // Verify it targets the distributed path
+    expect(fs.mkdirSync).toHaveBeenCalledWith(
+      path.join('/root/proj1/.skills', 'distributed-skill'),
       expect.any(Object),
     );
   });

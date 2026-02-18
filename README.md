@@ -17,9 +17,6 @@ Reskill is configured through the `nexical.yaml` file in your project root, unde
 
 ```yaml
 reskill:
-  # Directory where global/generated skills are stored (default: 'skills')
-  skillsDir: 'skills'
-
   # Constitution governing the AI's behavior and architectural rules
   constitution:
     architecture: 'core/ARCHITECTURE.md'
@@ -42,7 +39,7 @@ reskill:
       - 'GEMINI.md'
       - '.cursorrules'
 
-    # Symlinks to create pointing to the generated skills
+    # Symlinks to create pointing to the generated skills (bundle)
     symlinks:
       - '.vscode/skills'
       - '.cursor/rules'
@@ -53,7 +50,7 @@ reskill:
 Reskill automatically initializes its environment on the first run of any command. You do not need to run a manual setup.
 
 - **Global Prompts**: Stored in `.reskiller/prompts`. You can customize these files.
-- **Skills**: Stored in `skills` (or your configured `skillsDir`).
+- **Skills**: Discovered from `.skills` directories across your projects and bundled in `.reskill/skills`.
 
 ### Commands
 
