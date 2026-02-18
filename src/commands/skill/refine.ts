@@ -68,11 +68,11 @@ export default class RefineCommand extends BaseCommand {
       fs.mkdirSync(target.skillPath, { recursive: true });
     }
 
-    const canonFile = stageAuditor(target, config);
-    const driftFile = stageCritic(target, canonFile, config);
+    const canonFile = await stageAuditor(target, config);
+    const driftFile = await stageCritic(target, canonFile, config);
     await hooks.onDriftDetected(target, driftFile);
 
-    stageInstructor(target, canonFile, driftFile, config);
+    await stageInstructor(target, canonFile, driftFile, config);
     await hooks.onSkillUpdated(target);
 
     this.info('\n📚 Updating Context Files...');

@@ -128,11 +128,11 @@ export default class EvolveCommand extends BaseCommand {
         }
 
         try {
-          const canonFile = stageAuditor(target, config);
-          const driftFile = stageCritic(target, canonFile, config);
+          const canonFile = await stageAuditor(target, config);
+          const driftFile = await stageCritic(target, canonFile, config);
           await hooks.onDriftDetected(target, driftFile);
 
-          stageInstructor(target, canonFile, driftFile, config);
+          await stageInstructor(target, canonFile, driftFile, config);
           await hooks.onSkillUpdated(target);
         } catch (error) {
           this.error(`❌ Failed to evolve skill ${skillName}: ${error}`);

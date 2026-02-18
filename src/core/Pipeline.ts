@@ -12,12 +12,12 @@ export function ensureTmpDir() {
   }
 }
 
-export function stageAuditor(target: Target, config: ReskillConfig): string {
+export async function stageAuditor(target: Target, config: ReskillConfig): Promise<string> {
   console.info(`🕵️  Auditing ${target.name}...`);
   const outputFile = path.join(TMP_DIR, `${target.name.replace(/\s+/g, '-')}-canon.json`);
   if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
 
-  AgentRunner.run('Auditor', 'agents/auditor.md', {
+  await AgentRunner.run('Auditor', 'agents/auditor.md', {
     module_path: target.truthPath,
     output_file: outputFile,
     constitution: config.constitution, // Pass as object, AgentRunner will flatten
@@ -25,12 +25,16 @@ export function stageAuditor(target: Target, config: ReskillConfig): string {
   return outputFile;
 }
 
-export function stageCritic(target: Target, canonFile: string, config: ReskillConfig): string {
+export async function stageCritic(
+  target: Target,
+  canonFile: string,
+  config: ReskillConfig,
+): Promise<string> {
   console.info(`⚖️  Critiquing ${target.name}...`);
   const outputFile = path.join(TMP_DIR, `${target.name.replace(/\s+/g, '-')}-drift.md`);
   if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
 
-  AgentRunner.run('Critic', 'agents/critic.md', {
+  await AgentRunner.run('Critic', 'agents/critic.md', {
     audit_file: canonFile,
     doc_file: path.join(target.skillPath, 'SKILL.md'),
     skill_dir: target.skillPath,
@@ -40,14 +44,14 @@ export function stageCritic(target: Target, canonFile: string, config: ReskillCo
   return outputFile;
 }
 
-export function stageInstructor(
+export async function stageInstructor(
   target: Target,
   canonFile: string,
   reportFile: string,
   config: ReskillConfig,
 ) {
   console.info(`✍️  Rewriting ${target.name}...`);
-  AgentRunner.run('Instructor', 'agents/instructor.md', {
+  await AgentRunner.run('Instructor', 'agents/instructor.md', {
     audit_file: canonFile,
     report_file: reportFile,
     target_file: path.join(target.skillPath, 'SKILL.md'),
