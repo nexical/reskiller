@@ -27,20 +27,9 @@ pnpm-debug.log*
 # Testing
 coverage.json
 coverage/
-playwright-report/
 test-results*/
 blob-report/
 
 # Modular Architecture Artifacts
-# These files are generated or symlinked from modules/ at build time
-.agent/tmp/
-prisma/schema.prisma
-src/lib/core/version.ts
-src/lib/email/email-theme-config.ts
-src/styles/theme.css
-packages/agent/src/registry.ts
-packages/agent/bin/
-
-
-# stryker temp files
-.stryker-tmp
+.reskiller/
+.reskill/

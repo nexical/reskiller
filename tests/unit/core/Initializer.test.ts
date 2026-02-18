@@ -3,8 +3,8 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 // Import AFTER mocking
-import { Initializer } from '../../../../src/core/Initializer.js';
-import { ReskillConfig } from '../../../../src/config.js';
+import { Initializer } from '../../../src/core/Initializer.js';
+import { ReskillConfig } from '../../../src/config.js';
 
 vi.mock('node:fs');
 

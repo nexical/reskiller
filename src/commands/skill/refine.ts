@@ -54,9 +54,12 @@ export default class RefineCommand extends BaseCommand {
 
     this.info(`Refining ${skillName} using ${modulePath}...`);
 
+    const root = this.projectRoot || process.cwd();
+    const resolvedSkillsDir = path.resolve(root, config.skillsDir);
+
     const target = {
       name: skillName,
-      skillPath: path.join(config.skillsDir, skillName),
+      skillPath: path.join(resolvedSkillsDir, skillName),
       truthPath: modulePath,
     };
 

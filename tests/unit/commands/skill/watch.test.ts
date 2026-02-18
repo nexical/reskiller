@@ -9,6 +9,13 @@ vi.mock('../../../../src/config.js');
 vi.mock('chokidar');
 vi.mock('../../../../src/core/ProjectScanner.js');
 
+// Mock Initializer dynamic import
+vi.mock('../../../../src/core/Initializer.js', () => ({
+  Initializer: {
+    initialize: vi.fn(),
+  },
+}));
+
 // Mock CLI
 const mockCli = {} as unknown as CLI;
 
@@ -102,17 +109,39 @@ describe('WatchCommand', () => {
     expect(command.error).toHaveBeenCalledWith(expect.stringContaining('Missing'));
   });
 
-  it('should handle file change event', async () => {
-    const onMock = vi.fn().mockImplementation((event, cb) => {
-      if (event === 'change') {
-        cb('changed/file.ts');
-      }
+  it('should exit if config throws non-error', async () => {
+    vi.mocked(configMod.getReskillConfig).mockImplementation(() => {
+      throw 'String Error';
     });
-    vi.mocked(chokidar.watch).mockReturnValue({ on: onMock } as unknown as chokidar.FSWatcher);
 
     await command.run();
 
-    expect(command.info).toHaveBeenCalledWith(expect.stringContaining('File changed'));
+    expect(command.error).toHaveBeenCalledWith(expect.stringContaining('String Error'));
+  });
+
+  it('should handle file change event', async () => {
+    // We need to capture the callback passed to 'on'
+    let changeCallback: ((filePath: string) => Promise<void>) | undefined;
+
+    vi.mocked(chokidar.watch).mockReturnValue({
+      on: vi.fn((event, cb) => {
+        if (event === 'change') {
+          changeCallback = cb;
+        }
+        return {} as unknown as chokidar.FSWatcher;
+      }),
+    } as unknown as chokidar.FSWatcher);
+
+    await command.run();
+
+    expect(changeCallback).toBeDefined();
+    if (changeCallback) {
+      await changeCallback('changed/file.ts');
+      expect(command.info).toHaveBeenCalledWith(expect.stringContaining('File changed'));
+      expect(command.info).toHaveBeenCalledWith(
+        expect.stringContaining('Incremental update not fully implemented'),
+      );
+    }
   });
 
   it('should have hooks stubs', async () => {

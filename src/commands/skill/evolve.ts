@@ -38,6 +38,10 @@ export default class EvolveCommand extends BaseCommand {
 
     ensureTmpDir();
 
+    // Resolve skillsDir
+    const root = this.projectRoot || process.cwd();
+    const resolvedSkillsDir = path.resolve(root, config.skillsDir);
+
     // 0. Discovery & Bundling
     this.info('🔭 Discovering projects and bundling skills...');
     const projectScanner = new ProjectScanner(config);
@@ -49,14 +53,11 @@ export default class EvolveCommand extends BaseCommand {
     }
 
     // 0.5 Build Distributed Skill Index
-    // Map skill name -> absolute path to skill directory (if found in a project)
     const distributedSkillIndex = new Map<string, string>();
     for (const p of projects) {
       if (fs.existsSync(p.skillDir)) {
         try {
-          const skillsInProject = fs.readdirSync(p.skillDir, {
-            withFileTypes: true,
-          });
+          const skillsInProject = fs.readdirSync(p.skillDir, { withFileTypes: true });
           for (const dirent of skillsInProject) {
             if (dirent.isDirectory()) {
               distributedSkillIndex.set(dirent.name, path.join(p.skillDir, dirent.name));
@@ -80,11 +81,7 @@ export default class EvolveCommand extends BaseCommand {
     const knowledgeGraph = await explorer.discover();
 
     // 2. Strategize
-    // Architect should probably look at the BUNDLED skills now, or strictly the source ones?
-    // If it strategizes to CREATE skills, it should create them in the global skillsDir or local project skills?
-    // For now, let's keep it using config.skillsDir (Global) to avoid breaking the "Architect" logic which might trigger file creations.
-    // If we want distributed creation, that's a bigger change.
-    const architect = new Architect(config.skillsDir, TMP_DIR);
+    const architect = new Architect(resolvedSkillsDir, TMP_DIR);
     const plan = await architect.strategize(knowledgeGraph);
 
     this.info('\n📋 Skill Plan Proposed by Architect:');
@@ -111,9 +108,7 @@ export default class EvolveCommand extends BaseCommand {
         }
 
         // RESOLVE TARGET PATH
-        // If the skill already exists in a distributed project, use that path.
-        // Otherwise, fall back to the global configured skillsDir.
-        let targetSkillPath = path.join(config.skillsDir, skillName);
+        let targetSkillPath = path.join(resolvedSkillsDir, skillName);
         if (distributedSkillIndex.has(skillName)) {
           targetSkillPath = distributedSkillIndex.get(skillName)!;
           this.info(`📍 Targeting distributed skill at: ${targetSkillPath}`);
