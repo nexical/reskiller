@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getReskillConfig } from '../../src/config.js';
+import { getReskillConfig, parseReskillerConfig, mergeConfig } from '../../src/config.js';
+import type { ReskillConfig, ReskillConfigOverrides } from '../../src/config.js';
 
 describe('config', () => {
   it('should extract valid configuration from global config', () => {
@@ -59,5 +60,38 @@ describe('config', () => {
 
     const config = getReskillConfig(configWithArray);
     expect(config.constitution.patterns).toEqual(['P1', 'P2']);
+  });
+
+  it('should parse partial reskiller.yaml content', () => {
+    const yamlContent = `
+constitution:
+  architecture: NewArch
+discovery:
+  depth: 10
+`;
+    const overrides = parseReskillerConfig(yamlContent);
+    expect(overrides.constitution?.architecture).toBe('NewArch');
+    expect(overrides.discovery?.depth).toBe(10);
+    expect(overrides.constitution?.patterns).toBeUndefined();
+  });
+
+  it('should merge deep partial overrides correctly', () => {
+    const globalConfig: ReskillConfig = {
+      constitution: { architecture: 'BaseArch', patterns: 'P1' },
+      discovery: { root: '.', ignore: [], depth: 5 },
+      outputs: { contextFiles: ['ctx.md'], symlinks: [] },
+    };
+
+    const overrides: ReskillConfigOverrides = {
+      constitution: { architecture: 'OverriddenArch' },
+      discovery: { depth: 10 },
+    };
+
+    const merged = mergeConfig(globalConfig, overrides);
+    expect(merged.constitution.architecture).toBe('OverriddenArch');
+    expect(merged.constitution.patterns).toBe('P1');
+    expect(merged.discovery.depth).toBe(10);
+    expect(merged.discovery.root).toBe('.');
+    expect(merged.outputs.contextFiles).toEqual(['ctx.md']);
   });
 });

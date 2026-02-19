@@ -14,7 +14,11 @@ export const ReskillConfigSchema = z.object({
       ignore: z.array(z.string()).default(['node_modules', 'dist', '.git']),
       depth: z.number().default(5),
     })
-    .default({}),
+    .default({
+      root: '.',
+      ignore: ['node_modules', 'dist', '.git'],
+      depth: 5,
+    }),
   licenseKey: z.string().optional(),
   outputs: z.object({
     contextFiles: z.array(z.string()),
@@ -23,7 +27,14 @@ export const ReskillConfigSchema = z.object({
 });
 
 export type ReskillConfig = z.infer<typeof ReskillConfigSchema>;
-export type ReskillConfigOverrides = z.infer<ReturnType<typeof ReskillConfigSchema.deepPartial>>;
+
+export const ReskillConfigOverridesSchema = ReskillConfigSchema.partial().extend({
+  constitution: ReskillConfigSchema.shape.constitution.partial().optional(),
+  discovery: ReskillConfigSchema.shape.discovery.unwrap().partial().optional(),
+  outputs: ReskillConfigSchema.shape.outputs.partial().optional(),
+});
+
+export type ReskillConfigOverrides = z.infer<typeof ReskillConfigOverridesSchema>;
 
 export function getReskillConfig(
   cliConfig: Record<string, unknown>,
@@ -39,7 +50,9 @@ export function getReskillConfig(
         const content = fs.readFileSync(reskillerYamlPath, 'utf-8');
         reskillConfig = yaml.parse(content);
       } catch (e) {
-        throw new Error(`Failed to parse reskiller.yaml at ${reskillerYamlPath}: ${e}`);
+        throw new Error(`Failed to parse reskiller.yaml at ${reskillerYamlPath}: ${e}`, {
+          cause: e,
+        });
       }
     }
   }
@@ -56,8 +69,7 @@ export function getReskillConfig(
  */
 export function parseReskillerConfig(content: string): ReskillConfigOverrides {
   const parsed = yaml.parse(content);
-  // We use a relaxed validation for overrides
-  return parsed as ReskillConfigOverrides;
+  return ReskillConfigOverridesSchema.parse(parsed);
 }
 
 /**
