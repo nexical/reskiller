@@ -1,13 +1,14 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import fg from 'fast-glob';
-import { ReskillConfig } from '../config.js';
+import { ReskillConfig, parseReskillerConfig, mergePartialConfigs } from '../config.js';
 import { logger } from './Logger.js';
 
 export interface Project {
   name: string;
   path: string;
   skillDir: string;
+  overrides?: Partial<ReskillConfig>;
 }
 
 export class ProjectScanner {
@@ -107,10 +108,47 @@ export class ProjectScanner {
       }
     }
 
+    const overrides = this.resolveOverrides(projectPath);
+
     return {
       name,
       path: projectPath,
       skillDir: skillDirPath,
+      overrides,
     };
+  }
+
+  private resolveOverrides(projectPath: string): Partial<ReskillConfig> | undefined {
+    const { root } = this.config.discovery;
+    const discoveryRoot = path.resolve(this.cwd, root);
+
+    let currentDir = projectPath;
+    const overrideFiles: string[] = [];
+
+    // Walk up to discovery root to collect overrides
+    while (currentDir.startsWith(discoveryRoot)) {
+      const yamlPath = path.join(currentDir, 'reskiller.yaml');
+      if (fs.existsSync(yamlPath)) {
+        overrideFiles.unshift(yamlPath); // Root-most first
+      }
+      const parentDir = path.dirname(currentDir);
+      if (parentDir === currentDir) break;
+      currentDir = parentDir;
+    }
+
+    if (overrideFiles.length === 0) return undefined;
+
+    let combinedOverrides: Partial<ReskillConfig> = {};
+    for (const file of overrideFiles) {
+      try {
+        const content = fs.readFileSync(file, 'utf-8');
+        const parsed = parseReskillerConfig(content);
+        combinedOverrides = mergePartialConfigs(combinedOverrides, parsed);
+      } catch (e) {
+        logger.warn(`Failed to parse override file ${file}: ${e}`);
+      }
+    }
+
+    return Object.keys(combinedOverrides).length > 0 ? combinedOverrides : undefined;
   }
 }

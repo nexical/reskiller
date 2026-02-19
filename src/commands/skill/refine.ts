@@ -1,5 +1,5 @@
 import { BaseCommand, type CommandDefinition } from '@nexical/cli-core';
-import { getReskillConfig } from '../../config.js';
+import { ReskillConfig, getReskillConfig } from '../../config.js';
 import { ensureSymlinks } from '../../core/Symlinker.js';
 import { hooks } from '../../core/Hooks.js';
 import { ProjectScanner } from '../../core/ProjectScanner.js';
@@ -40,7 +40,7 @@ export default class RefineCommand extends BaseCommand {
 
     let config;
     try {
-      config = getReskillConfig(this.config);
+      config = getReskillConfig(this.config, this.projectRoot || process.cwd());
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
       logger.error(message);
@@ -65,10 +65,13 @@ export default class RefineCommand extends BaseCommand {
 
     // Try to find if this skill already exists in any project
     let targetSkillPath: string | undefined;
+    let targetOverrides: Partial<ReskillConfig> | undefined;
+
     for (const p of projects) {
       const potentialPath = path.join(p.skillDir, skillName);
       if (fs.existsSync(potentialPath)) {
         targetSkillPath = potentialPath;
+        targetOverrides = p.overrides;
         break;
       }
     }
@@ -77,6 +80,7 @@ export default class RefineCommand extends BaseCommand {
     if (!targetSkillPath) {
       if (projects.length > 0) {
         targetSkillPath = path.join(projects[0].skillDir, skillName);
+        targetOverrides = projects[0].overrides;
       } else {
         targetSkillPath = path.join(root, '.skills', skillName);
       }
@@ -86,6 +90,7 @@ export default class RefineCommand extends BaseCommand {
       name: skillName,
       skillPath: targetSkillPath,
       truthPath: modulePath,
+      overrides: targetOverrides,
     };
 
     // Ensure skill directory exists

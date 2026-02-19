@@ -38,7 +38,7 @@ export default class EvolveCommand extends BaseCommand {
 
     let config: ReskillConfig;
     try {
-      config = getReskillConfig(this.config);
+      config = getReskillConfig(this.config, this.projectRoot || process.cwd());
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
       logger.error(message);
@@ -74,7 +74,10 @@ export default class EvolveCommand extends BaseCommand {
     }
 
     // 0.5 Build Distributed Skill Index
-    const distributedSkillIndex = new Map<string, string>();
+    const distributedSkillIndex = new Map<
+      string,
+      { path: string; overrides?: Partial<ReskillConfig> }
+    >();
     for (const p of projects) {
       if (fs.existsSync(p.skillDir)) {
         try {
@@ -83,7 +86,10 @@ export default class EvolveCommand extends BaseCommand {
             if (dirent.isDirectory()) {
               const skillName = dirent.name;
               const compositeName = `${p.name}-${skillName}`;
-              distributedSkillIndex.set(compositeName, path.join(p.skillDir, skillName));
+              distributedSkillIndex.set(compositeName, {
+                path: path.join(p.skillDir, skillName),
+                overrides: p.overrides,
+              });
             }
           }
         } catch (e) {
@@ -131,8 +137,12 @@ export default class EvolveCommand extends BaseCommand {
 
         // RESOLVE TARGET PATH
         let targetSkillPath: string;
+        let targetOverrides: Partial<ReskillConfig> | undefined;
+
         if (distributedSkillIndex.has(skillName)) {
-          targetSkillPath = distributedSkillIndex.get(skillName)!;
+          const info = distributedSkillIndex.get(skillName)!;
+          targetSkillPath = info.path;
+          targetOverrides = info.overrides;
           logger.info(`📍 Targeting distributed skill at: ${targetSkillPath}`);
         } else {
           // Fallback: This case shouldn't happen much with the new flattened architecture since everything is bundled
@@ -149,6 +159,7 @@ export default class EvolveCommand extends BaseCommand {
             defaultProject.skillDir,
             skillName.replace(`${defaultProject.name}-`, ''),
           );
+          targetOverrides = defaultProject.overrides;
           logger.info(`📍 Targeting NEW skill at: ${targetSkillPath}`);
         }
 
@@ -156,6 +167,7 @@ export default class EvolveCommand extends BaseCommand {
           name: skillName,
           skillPath: targetSkillPath,
           truthPath: modulePath,
+          overrides: targetOverrides,
         };
 
         // Ensure skill directory exists

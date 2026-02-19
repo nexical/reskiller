@@ -1,7 +1,10 @@
+import { ReskillConfig } from './config.js';
+
 export interface Target {
   name: string;
   skillPath: string;
   truthPath: string;
+  overrides?: Partial<ReskillConfig>;
 }
 
 export interface AgentConfig {

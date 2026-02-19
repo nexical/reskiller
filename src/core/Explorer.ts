@@ -11,13 +11,13 @@ interface ScannedProject {
 }
 
 export class Explorer {
-  private constitution: { architecture: string; patterns?: string };
+  private constitution: { architecture: string; patterns?: string | string[] };
   private projects: Project[];
   private tmpDir: string;
 
   constructor(
     projects: Project[],
-    constitution: { architecture: string; patterns?: string },
+    constitution: { architecture: string; patterns?: string | string[] },
     tmpDir: string,
   ) {
     this.projects = projects;

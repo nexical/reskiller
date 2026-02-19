@@ -13,7 +13,10 @@ export function ensureTmpDir() {
   }
 }
 
+import { mergeConfig } from '../config.js';
+
 export async function stageAuditor(target: Target, config: ReskillConfig): Promise<string> {
+  const finalConfig = mergeConfig(config, target.overrides);
   logger.info(`🕵️  Auditing ${target.name}...`);
   const outputFile = path.join(TMP_DIR, `${target.name.replace(/\s+/g, '-')}-canon.json`);
   if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
@@ -21,7 +24,7 @@ export async function stageAuditor(target: Target, config: ReskillConfig): Promi
   await AgentRunner.run('Auditor', 'agents/auditor.md', {
     module_path: target.truthPath,
     output_file: outputFile,
-    constitution: config.constitution, // Pass as object, AgentRunner will flatten
+    constitution: finalConfig.constitution, // Use finalConfig
   });
   return outputFile;
 }
@@ -31,6 +34,7 @@ export async function stageCritic(
   canonFile: string,
   config: ReskillConfig,
 ): Promise<string> {
+  const finalConfig = mergeConfig(config, target.overrides);
   logger.info(`⚖️  Critiquing ${target.name}...`);
   const outputFile = path.join(TMP_DIR, `${target.name.replace(/\s+/g, '-')}-drift.md`);
   if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
@@ -40,7 +44,7 @@ export async function stageCritic(
     doc_file: path.join(target.skillPath, 'SKILL.md'),
     skill_dir: target.skillPath,
     output_file: outputFile,
-    constitution: config.constitution,
+    constitution: finalConfig.constitution,
   });
   return outputFile;
 }
@@ -51,13 +55,14 @@ export async function stageInstructor(
   reportFile: string,
   config: ReskillConfig,
 ) {
+  const finalConfig = mergeConfig(config, target.overrides);
   logger.info(`✍️  Rewriting ${target.name}...`);
   await AgentRunner.run('Instructor', 'agents/instructor.md', {
     audit_file: canonFile,
     report_file: reportFile,
     target_file: path.join(target.skillPath, 'SKILL.md'),
     skill_dir: target.skillPath,
-    constitution: config.constitution,
+    constitution: finalConfig.constitution,
   });
 }
 
