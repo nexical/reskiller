@@ -43,4 +43,21 @@ describe('config', () => {
     const config = getReskillConfig(minimalConfig);
     expect(config.discovery.root).toBe('.');
   });
+
+  it('should support multiple patterns in constitution', () => {
+    const configWithArray = {
+      reskill: {
+        constitution: {
+          architecture: 'Arch',
+          patterns: ['P1', 'P2'],
+        },
+        outputs: {
+          contextFiles: [],
+        },
+      },
+    };
+
+    const config = getReskillConfig(configWithArray);
+    expect(config.constitution.patterns).toEqual(['P1', 'P2']);
+  });
 });

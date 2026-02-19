@@ -20,7 +20,7 @@ reskill:
   # Constitution governing the AI's behavior and architectural rules
   constitution:
     architecture: 'core/ARCHITECTURE.md'
-    patterns: 'core/MODULAR_PATTERNS.md' # Optional
+    patterns: 'core/MODULAR_PATTERNS.md' # Optional (string or string array)
 
   # Discovery settings for finding projects and distributed skills
   discovery:

@@ -28,7 +28,7 @@ describe('EvolveCommand', () => {
   let command: EvolveCommand;
   const mockConfig = {
     discovery: { root: '.', markers: ['.skills'], ignore: [], depth: 1 },
-    constitution: { architecture: 'Test' },
+    constitution: { architecture: 'Test', patterns: 'Test Patterns' },
     outputs: { contextFiles: [], symlinks: [] },
   } as configMod.ReskillConfig;
 

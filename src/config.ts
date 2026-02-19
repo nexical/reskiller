@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const ReskillConfigSchema = z.object({
   constitution: z.object({
     architecture: z.string(),
-    patterns: z.string().optional(),
+    patterns: z.union([z.string(), z.array(z.string())]).optional(),
   }),
   discovery: z
     .object({

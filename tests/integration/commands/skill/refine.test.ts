@@ -72,7 +72,7 @@ describe('RefineCommand Integration', () => {
       reskill: {
         discovery: { root: '.', markers: ['.skills'], ignore: [], depth: 5 },
         outputs: { contextFiles: [], symlinks: [] },
-        constitution: { architecture: 'Test' },
+        constitution: { architecture: 'Test', patterns: 'Test Patterns' },
       },
     };
     (command as any).projectRoot = projectDir;

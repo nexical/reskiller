@@ -20,7 +20,7 @@ describe('Pipeline', () => {
     outputs: {
       contextFiles: ['/mock/context.md'],
     },
-    constitution: { architecture: 'Test' },
+    constitution: { architecture: 'Test', patterns: 'Test Patterns' },
   };
 
   const mockCwd = '/mock/cwd';

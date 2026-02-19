@@ -28,6 +28,9 @@ export function createTestProject(projectName: string, config: Record<string, un
   // Create nexical.yaml
   const nexicalYaml = `
 reskill:
+  constitution:
+    architecture: "Test"
+    patterns: "Test Patterns"
   discovery:
     root: "."
     ignore: ["node_modules"]

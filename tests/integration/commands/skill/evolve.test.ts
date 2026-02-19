@@ -104,7 +104,7 @@ describe('EvolveCommand Integration', () => {
       reskill: {
         discovery: { root: projectDir, markers: ['.skills'], ignore: [], depth: 5 },
         outputs: { contextFiles: [], symlinks: [] },
-        constitution: { architecture: 'Test' },
+        constitution: { architecture: 'Test', patterns: 'Test Patterns' },
       },
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

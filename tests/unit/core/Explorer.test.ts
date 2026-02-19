@@ -10,7 +10,7 @@ describe('Explorer', () => {
     { name: 'core', path: '/mock/core', skillDir: '/mock/core/.skills' },
     { name: 'module-a', path: '/mock/module-a', skillDir: '/mock/module-a/.skills' },
   ];
-  const mockConstitution = { architecture: 'Test Arch' };
+  const mockConstitution = { architecture: 'Test Arch', patterns: 'Test Patterns' };
   const mockTmpDir = '/mock/tmp';
 
   beforeEach(() => {

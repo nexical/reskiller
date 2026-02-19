@@ -94,17 +94,17 @@ Reskill is configured via the `reskill` key in `nexical.yaml` (or the project's 
 
 ### Schema (`ReskillConfig`)
 
-| Field                       | Type       | Description                                                                  |
-| :-------------------------- | :--------- | :--------------------------------------------------------------------------- |
-| `constitution`              | `object`   | References to global governance documents.                                   |
-| `constitution.architecture` | `string`   | Path to the main architecture doc (required).                                |
-| `constitution.patterns`     | `string`   | Path to the patterns/modules doc (optional).                                 |
-| `discovery`                 | `object`   | Defines the scope of the scanner.                                            |
-| `discovery.root`            | `string`   | Root directory to scan from. Default: `.`.                                   |
-| `discovery.markers`         | `string[]` | Directory names that indicate a "Skill Project". Default: `['.skills']`.     |
-| `outputs`                   | `object`   | Where to inject the skill index.                                             |
-| `outputs.contextFiles`      | `string[]` | Files to update with the list of skills (e.g., `GEMINI.md`, `.cursorrules`). |
-| `licenseKey`                | `string`   | (Optional) Key for Pro features (Watch mode).                                |
+| Field                       | Type                 | Description                                                                  |
+| :-------------------------- | :------------------- | :--------------------------------------------------------------------------- |
+| `constitution`              | `object`             | References to global governance documents.                                   |
+| `constitution.architecture` | `string`             | Path to the main architecture doc (required).                                |
+| `constitution.patterns`     | `string \| string[]` | Path(s) to coding standards (optional).                                      |
+| `discovery`                 | `object`             | Defines the scope of the scanner.                                            |
+| `discovery.root`            | `string`             | Root directory to scan from. Default: `.`.                                   |
+| `discovery.markers`         | `string[]`           | Directory names that indicate a "Skill Project". Default: `['.skills']`.     |
+| `outputs`                   | `object`             | Where to inject the skill index.                                             |
+| `outputs.contextFiles`      | `string[]`           | Files to update with the list of skills (e.g., `GEMINI.md`, `.cursorrules`). |
+| `licenseKey`                | `string`             | (Optional) Key for Pro features (Watch mode).                                |
 
 ---
 
