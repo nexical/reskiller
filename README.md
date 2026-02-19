@@ -19,13 +19,12 @@ Reskill is configured through the `nexical.yaml` file in your project root, unde
 reskill:
   # Constitution governing the AI's behavior and architectural rules
   constitution:
-    architecture: 'core/ARCHITECTURE.md'
-    patterns: 'core/MODULAR_PATTERNS.md' # Optional (string or string array)
+    architecture: 'ARCHITECTURE.md'
+    patterns: 'MODULAR_PATTERNS.md' # Optional (string or string array)
 
   # Discovery settings for finding projects and distributed skills
   discovery:
     root: '.' # Root directory to scan from
-    markers: ['.skills'] # Directory names that indicate a "Skill Project"
     ignore: # Directories to ignore
       - 'node_modules'
       - 'dist'
@@ -36,13 +35,15 @@ reskill:
   outputs:
     # Files to concatenate into a global context (e.g., GEMINI.md)
     contextFiles:
+      - 'AGENTS.md'
       - 'GEMINI.md'
-      - '.cursorrules'
+      - 'CLAUDE.md'
 
     # Symlinks to create pointing to the generated skills (bundle)
     symlinks:
-      - '.vscode/skills'
-      - '.cursor/rules'
+      - .agent/skills
+      - .gemini/skills
+      - .claude/skills
 ```
 
 ## Usage
