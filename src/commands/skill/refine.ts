@@ -1,5 +1,5 @@
 import { BaseCommand, type CommandDefinition } from '@nexical/cli-core';
-import { ReskillConfig, getReskillConfig } from '../../config.js';
+import { getReskillConfig, ReskillConfigOverrides } from '../../config.js';
 import { ensureSymlinks } from '../../core/Symlinker.js';
 import { hooks } from '../../core/Hooks.js';
 import { ProjectScanner } from '../../core/ProjectScanner.js';
@@ -65,7 +65,7 @@ export default class RefineCommand extends BaseCommand {
 
     // Try to find if this skill already exists in any project
     let targetSkillPath: string | undefined;
-    let targetOverrides: Partial<ReskillConfig> | undefined;
+    let targetOverrides: ReskillConfigOverrides | undefined;
 
     for (const p of projects) {
       const potentialPath = path.join(p.skillDir, skillName);

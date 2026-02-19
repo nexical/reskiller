@@ -1,5 +1,5 @@
 import { BaseCommand } from '@nexical/cli-core';
-import { ReskillConfig, getReskillConfig } from '../../config.js';
+import { ReskillConfig, getReskillConfig, ReskillConfigOverrides } from '../../config.js';
 import { ensureSymlinks } from '../../core/Symlinker.js';
 import { Explorer } from '../../core/Explorer.js';
 import { Architect } from '../../core/Architect.js';
@@ -76,7 +76,7 @@ export default class EvolveCommand extends BaseCommand {
     // 0.5 Build Distributed Skill Index
     const distributedSkillIndex = new Map<
       string,
-      { path: string; overrides?: Partial<ReskillConfig> }
+      { path: string; overrides?: ReskillConfigOverrides }
     >();
     for (const p of projects) {
       if (fs.existsSync(p.skillDir)) {
@@ -137,7 +137,7 @@ export default class EvolveCommand extends BaseCommand {
 
         // RESOLVE TARGET PATH
         let targetSkillPath: string;
-        let targetOverrides: Partial<ReskillConfig> | undefined;
+        let targetOverrides: ReskillConfigOverrides | undefined;
 
         if (distributedSkillIndex.has(skillName)) {
           const info = distributedSkillIndex.get(skillName)!;

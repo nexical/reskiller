@@ -1,14 +1,19 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import fg from 'fast-glob';
-import { ReskillConfig, parseReskillerConfig, mergePartialConfigs } from '../config.js';
+import {
+  ReskillConfig,
+  parseReskillerConfig,
+  mergePartialConfigs,
+  ReskillConfigOverrides,
+} from '../config.js';
 import { logger } from './Logger.js';
 
 export interface Project {
   name: string;
   path: string;
   skillDir: string;
-  overrides?: Partial<ReskillConfig>;
+  overrides?: ReskillConfigOverrides;
 }
 
 export class ProjectScanner {
@@ -118,7 +123,7 @@ export class ProjectScanner {
     };
   }
 
-  private resolveOverrides(projectPath: string): Partial<ReskillConfig> | undefined {
+  private resolveOverrides(projectPath: string): ReskillConfigOverrides | undefined {
     const { root } = this.config.discovery;
     const discoveryRoot = path.resolve(this.cwd, root);
 
@@ -138,7 +143,7 @@ export class ProjectScanner {
 
     if (overrideFiles.length === 0) return undefined;
 
-    let combinedOverrides: Partial<ReskillConfig> = {};
+    let combinedOverrides: ReskillConfigOverrides = {};
     for (const file of overrideFiles) {
       try {
         const content = fs.readFileSync(file, 'utf-8');
