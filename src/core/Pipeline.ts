@@ -23,7 +23,7 @@ export async function stageAuditor(
 ): Promise<string> {
   const finalConfig = mergeConfig(config, target.overrides);
   logger.info(`🕵️  Auditing ${target.name}...`);
-  const outputFile = path.join(TMP_DIR, `${target.name.replace(/\\s+/g, '-')}-canon.json`);
+  const outputFile = path.join(TMP_DIR, `${target.name.replace(/\s+/g, '-')}-canon.json`);
   if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
 
   await AgentRunner.run('Auditor', 'agents/auditor.md', {
@@ -45,7 +45,7 @@ export async function stageCritic(
 ): Promise<string> {
   const finalConfig = mergeConfig(config, target.overrides);
   logger.info(`⚖️  Critiquing ${target.name}...`);
-  const outputFile = path.join(TMP_DIR, `${target.name.replace(/\\s+/g, '-')}-drift.md`);
+  const outputFile = path.join(TMP_DIR, `${target.name.replace(/\s+/g, '-')}-drift.md`);
   if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
 
   await AgentRunner.run('Critic', 'agents/critic.md', {

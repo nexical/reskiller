@@ -1,7 +1,7 @@
 # Reskill System Specification
 
 **Version**: 1.1.0
-**Status**: Stable / Pro Implementation
+**Status**: Stable
 
 ## 1. Purpose
 
@@ -104,7 +104,6 @@ Reskill is configured via the `reskill` key in `nexical.yaml` (or the project's 
 | `discovery.markers`         | `string[]`           | Directory names that indicate a "Skill Project". Default: `['.skills']`.     |
 | `outputs`                   | `object`             | Where to inject the skill index.                                             |
 | `outputs.contextFiles`      | `string[]`           | Files to update with the list of skills (e.g., `GEMINI.md`, `.cursorrules`). |
-| `licenseKey`                | `string`             | (Optional) Key for Pro features (Watch mode).                                |
 
 ---
 
@@ -120,9 +119,9 @@ You can customize the "Personality" of the agents by overriding their system pro
 2.  Add a markdown file matching the agent name (e.g., `auditor.md`, `architect.md`).
 3.  Reskill will prioritize your local file over the bundled default.
 
-### 5.2 The Hooks System (Pro)
+### 5.2 The Hooks System
 
-The "Commercial Pro" tier enables the **Hooks System**, allowing plugins to react to lifecycle events.
+The **Hooks System** allows plugins to react to lifecycle events.
 
 **Location**: `src/core/Hooks.ts` (Internal API).
 
@@ -150,7 +149,11 @@ nexical skill learn
 - Best for CI/CD pipelines or nightly builds.
 - Updates all skills based on the current architectural patterns.
 
-#### `watch` (Pro)
+#### `nexical skill watch`
+
+Watches your project for file changes and incrementally updates relevant skills. based on the current architectural patterns.
+
+#### `watch`
 
 Runs as a daemon, watching for file changes.
 
@@ -158,5 +161,4 @@ Runs as a daemon, watching for file changes.
 nexical skill watch
 ```
 
-- Requires `licenseKey`.
 - Incrementally triggers drift detection when core files change.

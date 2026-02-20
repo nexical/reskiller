@@ -25,7 +25,6 @@ describe('WatchCommand', () => {
   const mockConfig = {
     constitution: { architecture: 'Test' },
     outputs: { contextFiles: [] },
-    licenseKey: 'valid',
   };
 
   beforeEach(() => {
@@ -57,7 +56,7 @@ describe('WatchCommand', () => {
     });
   });
 
-  it('should start watcher if license is valid', async () => {
+  it('should start watcher', async () => {
     const onMock = vi.fn();
     vi.mocked(chokidar.watch).mockReturnValue({ on: onMock } as unknown as chokidar.FSWatcher);
 
@@ -69,26 +68,6 @@ describe('WatchCommand', () => {
     );
     expect(onMock).toHaveBeenCalledWith('change', expect.any(Function));
     expect(command.info).toHaveBeenCalledWith(expect.stringContaining('Starting Watcher'));
-  });
-
-  it('should exit if license missing', async () => {
-    vi.mocked(configMod.getReskillConfig).mockReturnValue({
-      ...mockConfig,
-      licenseKey: undefined,
-    } as unknown as configMod.ReskillConfig);
-    await expect(command.run()).rejects.toThrow('Exit called');
-
-    expect(command.error).toHaveBeenCalledWith(expect.stringContaining('Pro feature'));
-  });
-
-  it('should exit if license expired', async () => {
-    vi.mocked(configMod.getReskillConfig).mockReturnValue({
-      ...mockConfig,
-      licenseKey: 'expired',
-    } as unknown as configMod.ReskillConfig);
-    await expect(command.run()).rejects.toThrow('Exit called');
-
-    expect(command.error).toHaveBeenCalledWith(expect.stringContaining('License expired'));
   });
 
   it('should exit if config missing', async () => {

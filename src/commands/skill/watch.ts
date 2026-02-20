@@ -11,7 +11,7 @@ export const hooks = {
 };
 
 export default class WatchCommand extends BaseCommand {
-  static description = 'Watch for changes and incrementally refine skills (Pro)';
+  static description = 'Watch for changes and incrementally refine skills';
 
   async run() {
     logger.setCommand(this);
@@ -31,18 +31,7 @@ export default class WatchCommand extends BaseCommand {
     const { Initializer } = await import('../../core/Initializer.js');
     Initializer.initialize(config, root);
 
-    const licenseKey = config.licenseKey || process.env.RESKILL_LICENSE_KEY;
-    if (!licenseKey) {
-      logger.error(
-        "🔒 The 'watch' command is a Pro feature. Please upgrade and set 'licenseKey' in config or env.",
-      );
-    }
-
-    // Verify license (Stub)
-    if (licenseKey === 'expired') {
-      logger.error('🔒 License expired.');
-    }
-    logger.info('🔓 Pro License Verified. Starting Watcher...');
+    logger.info('Starting Watcher...');
 
     // Discover projects to watch
     const { ProjectScanner } = await import('../../core/ProjectScanner.js');

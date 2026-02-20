@@ -19,7 +19,6 @@ export const ReskillConfigSchema = z.object({
       ignore: ['node_modules', 'dist', '.git'],
       depth: 5,
     }),
-  licenseKey: z.string().optional(),
   outputs: z.object({
     contextFiles: z.array(z.string()),
     symlinks: z.array(z.string()).optional().default([]),

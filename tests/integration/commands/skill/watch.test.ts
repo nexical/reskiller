@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createTestProject } from '../../setup.js';
 import { CLI } from '@nexical/cli-core';
 
@@ -50,9 +50,7 @@ describe('WatchCommand Integration', () => {
     const mockCli = {} as unknown as CLI;
     command = new WatchCommand(mockCli);
 
-    // Mock license key env for test
-    process.env.RESKILL_LICENSE_KEY = 'test-license';
-
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (command as any).config = {
       reskill: {
         discovery: { root: '.', markers: ['.skills'], ignore: [], depth: 5 },
@@ -60,6 +58,7 @@ describe('WatchCommand Integration', () => {
         constitution: { architecture: 'Test', patterns: 'Test Patterns' },
       },
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (command as any).projectRoot = projectDir;
 
     command.info = vi.fn();
@@ -68,11 +67,7 @@ describe('WatchCommand Integration', () => {
     command.warn = vi.fn();
   });
 
-  afterEach(() => {
-    delete process.env.RESKILL_LICENSE_KEY;
-  });
-
-  it('should start watcher with valid license', async () => {
+  it('should start watcher', async () => {
     await command.run();
 
     expect(command.info).toHaveBeenCalledWith(expect.stringContaining('Starting Watcher'));

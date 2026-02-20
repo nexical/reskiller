@@ -69,7 +69,3 @@ Reskill follows a "Core & Shell" architecture:
 - **Core**: The immutable logic for pipelines, agents, and configuration.
 - **Shell**: The `nexical` CLI that hosts the commands.
 - **Registry**: The collection of skills themselves.
-
-## License
-
-Some advanced features (like `watch`) require a Pro license key, which can be configured in `nexical.yaml` (`licenseKey`) or via the `RESKILL_LICENSE_KEY` environment variable.

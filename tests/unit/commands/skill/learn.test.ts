@@ -20,6 +20,14 @@ vi.mock('../../../../src/core/Pipeline.js', async () => {
   return await import('../../../../tests/unit/mocks/Pipeline.js');
 });
 vi.mock('node:fs');
+vi.mock('node:child_process', () => ({
+  execSync: vi.fn(),
+}));
+vi.mock('../../../../src/agents/AgentRunner.js', () => ({
+  AgentRunner: {
+    run: vi.fn().mockResolvedValue('Recommendations'),
+  },
+}));
 export const mockSetupRun = vi.fn().mockResolvedValue(true);
 vi.mock('../../../../src/commands/skill/setup.js', () => {
   return {
@@ -51,6 +59,7 @@ describe('LearnCommand', () => {
     command.warn = vi.fn();
     command.success = vi.fn();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (command as any).config = { reskill: mockConfig };
 
     vi.mocked(configMod.getReskillConfig).mockReturnValue(mockConfig);

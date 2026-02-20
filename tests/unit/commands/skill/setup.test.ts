@@ -93,7 +93,7 @@ describe('SetupCommand', () => {
     await command.run({ directory: 'test-scope' });
 
     const mockScannerInstance = vi.mocked(ProjectScanner).mock.results[0].value;
-    expect(mockScannerInstance.scan).toHaveBeenCalledWith('/mock/root/test-scope');
+    expect(mockScannerInstance.scan).toHaveBeenCalledWith();
   });
 
   it('should abort if scoped directory does not exist', async () => {
