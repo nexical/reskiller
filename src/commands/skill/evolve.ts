@@ -199,6 +199,8 @@ export default class EvolveCommand extends BaseCommand {
     setupCmd.projectRoot = this.projectRoot;
     // @ts-expect-error - overriding protected property
     setupCmd.globalOptions = this.globalOptions;
-    await setupCmd.run();
+    // @ts-expect-error - overriding protected property
+    setupCmd.config = this.config;
+    await setupCmd.run({ directory: options.directory });
   }
 }

@@ -99,6 +99,8 @@ export default class RefineCommand extends BaseCommand {
     setupCmd.projectRoot = this.projectRoot;
     // @ts-expect-error - overriding protected property
     setupCmd.globalOptions = this.globalOptions;
+    // @ts-expect-error - overriding protected property
+    setupCmd.config = this.config;
     await setupCmd.run();
 
     logger.success('Refinement complete.');
