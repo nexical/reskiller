@@ -15,16 +15,23 @@ export function ensureTmpDir() {
 
 import { mergeConfig } from '../config.js';
 
-export async function stageAuditor(target: Target, config: ReskillConfig): Promise<string> {
+export async function stageAuditor(
+  target: Target,
+  config: ReskillConfig,
+  cwd: string,
+  edit: boolean = false,
+): Promise<string> {
   const finalConfig = mergeConfig(config, target.overrides);
   logger.info(`🕵️  Auditing ${target.name}...`);
-  const outputFile = path.join(TMP_DIR, `${target.name.replace(/\s+/g, '-')}-canon.json`);
+  const outputFile = path.join(TMP_DIR, `${target.name.replace(/\\s+/g, '-')}-canon.json`);
   if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
 
   await AgentRunner.run('Auditor', 'agents/auditor.md', {
     pattern_path: target.patternPath,
     output_file: outputFile,
     constitution: finalConfig.constitution, // Use finalConfig
+    edit_mode: edit,
+    cwd,
   });
   return outputFile;
 }
@@ -33,10 +40,12 @@ export async function stageCritic(
   target: Target,
   canonFile: string,
   config: ReskillConfig,
+  cwd: string,
+  edit: boolean = false,
 ): Promise<string> {
   const finalConfig = mergeConfig(config, target.overrides);
   logger.info(`⚖️  Critiquing ${target.name}...`);
-  const outputFile = path.join(TMP_DIR, `${target.name.replace(/\s+/g, '-')}-drift.md`);
+  const outputFile = path.join(TMP_DIR, `${target.name.replace(/\\s+/g, '-')}-drift.md`);
   if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
 
   await AgentRunner.run('Critic', 'agents/critic.md', {
@@ -45,6 +54,8 @@ export async function stageCritic(
     skill_dir: target.skillPath,
     output_file: outputFile,
     constitution: finalConfig.constitution,
+    edit_mode: edit,
+    cwd,
   });
   return outputFile;
 }
@@ -54,6 +65,9 @@ export async function stageInstructor(
   canonFile: string,
   reportFile: string,
   config: ReskillConfig,
+  cwd: string,
+  edit: boolean = false,
+  gauntletReportFile?: string,
 ) {
   const finalConfig = mergeConfig(config, target.overrides);
   logger.info(`✍️  Rewriting ${target.name}...`);
@@ -63,6 +77,9 @@ export async function stageInstructor(
     target_file: path.join(target.skillPath, 'SKILL.md'),
     skill_dir: target.skillPath,
     constitution: finalConfig.constitution,
+    edit_mode: edit,
+    cwd,
+    gauntlet_report_file: gauntletReportFile,
   });
 }
 
@@ -77,29 +94,29 @@ export async function updateContextFiles(config: ReskillConfig, cwd: string = pr
     return fs.statSync(path.join(bundleDir, file)).isDirectory();
   });
 
-  const skillLines: string[] = [];
-
-  for (const skill of skills) {
-    const skillMdPath = path.join(bundleDir, skill, 'SKILL.md');
-    if (fs.existsSync(skillMdPath)) {
-      const content = fs.readFileSync(skillMdPath, 'utf-8');
-      // Simple regex to parse frontmatter description
-      const match = content.match(/^description:\s*(.*)$/m);
-      const description = match ? match[1].trim() : 'No description provided.';
-
-      // Get absolute path for the file link
-      const absPath = path.resolve(skillMdPath);
-      skillLines.push(`- **[${skill}](file://${absPath})**: ${description}`);
-    }
-  }
-
-  const newSectionContent = `\n\nYou have access to the following specialized skills. Use them to perform complex tasks correctly.\n\n${skillLines.join('\n')}\n\n`;
-
   for (const contextFile of config.outputs.contextFiles) {
     if (!fs.existsSync(contextFile)) {
       logger.warn(`Context file not found: ${contextFile}`);
       continue;
     }
+
+    const skillLines: string[] = [];
+
+    for (const skill of skills) {
+      const skillMdPath = path.join(bundleDir, skill, 'SKILL.md');
+      if (fs.existsSync(skillMdPath)) {
+        const content = fs.readFileSync(skillMdPath, 'utf-8');
+        // Simple regex to parse frontmatter description
+        const match = content.match(/^description:\s*(.*)$/m);
+        const description = match ? match[1].trim() : 'No description provided.';
+
+        // Get path relative to workspace root so .reskill is at the top level
+        const relPath = '/' + path.relative(cwd, skillMdPath);
+        skillLines.push(`- **[${skill}](${relPath})**: ${description}`);
+      }
+    }
+
+    const newSectionContent = `\n\nYou have access to the following specialized skills. Use them to perform complex tasks correctly.\n\n${skillLines.join('\n')}\n\n`;
 
     const fileContent = fs.readFileSync(contextFile, 'utf-8');
 

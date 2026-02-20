@@ -14,18 +14,21 @@ export class Explorer {
   private constitution: { architecture: string; patterns?: string | string[] };
   private projects: Project[];
   private tmpDir: string;
+  private edit: boolean;
 
   constructor(
     projects: Project[],
     constitution: { architecture: string; patterns?: string | string[] },
     tmpDir: string,
+    edit: boolean = false,
   ) {
     this.projects = projects;
     this.constitution = constitution;
     this.tmpDir = tmpDir;
+    this.edit = edit;
   }
 
-  async discover(): Promise<string> {
+  async discover(recommendationsFile?: string): Promise<string> {
     logger.info('🔍 Explorer: Analyzing projects...');
 
     const scannedProjects = this.scanProjects();
@@ -36,10 +39,12 @@ export class Explorer {
 
     const outputFile = path.join(this.tmpDir, 'knowledge-graph.json');
 
-    AgentRunner.run('Explorer', 'agents/explorer.md', {
+    await AgentRunner.run('Explorer', 'agents/explorer.md', {
       modules_list: modulesFile,
       constitution: this.constitution,
       output_file: outputFile,
+      edit_mode: this.edit,
+      recommendations_file: recommendationsFile,
     });
 
     return outputFile;

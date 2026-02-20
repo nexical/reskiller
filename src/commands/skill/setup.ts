@@ -57,16 +57,18 @@ export default class SetupCommand extends BaseCommand {
     }
 
     // 1. Discovery
-    logger.info('🔭 Discovering projects and bundling skills...');
+    logger.info('🔭 Discovering projects and bundling skills globally...');
     const projectScanner = new ProjectScanner(config, root);
-    const projects = await projectScanner.scan(scope);
+    // Setup always bundles everything, regardless of scope
+    const projects = await projectScanner.scan();
+
     logger.info(`✅ Found ${projects.length} projects.`);
     for (const p of projects) {
-      logger.info(`   - ${p.name} (${path.relative(process.cwd(), p.path)})`);
+      logger.info(`   - ${p.name} (${path.relative(root, p.path)})`);
     }
 
     // 2. Bundling
-    const bundler = new Bundler(config);
+    const bundler = new Bundler(config, root);
     await bundler.bundle(projects);
     const bundleDir = bundler.getBundleDir();
 

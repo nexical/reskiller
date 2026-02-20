@@ -10,6 +10,7 @@ import { Target } from '../../types.js';
 import { logger } from '../../core/Logger.js';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
+import { execSync } from 'node:child_process';
 
 const TMP_DIR = '.agent/tmp/reskill';
 
@@ -23,9 +24,16 @@ export default class LearnCommand extends BaseCommand {
         required: false,
       },
     ],
+    options: [
+      {
+        name: '--edit',
+        description: 'Toggle editing of code implementation and pattern files',
+        default: false,
+      },
+    ],
   };
 
-  async run(options: { directory?: string } = {}) {
+  async run(options: { directory?: string; edit?: boolean } = {}) {
     logger.setCommand(this);
     logger.setDebug(this.globalOptions.debug);
 
@@ -54,12 +62,17 @@ export default class LearnCommand extends BaseCommand {
     }
 
     // 0. Discovery & Bundling
-    logger.info('🔭 Discovering projects and bundling skills...');
+    logger.info('🔭 Discovering projects and bundling skills globally...');
     const projectScanner = new ProjectScanner(config, root);
-    const projects = await projectScanner.scan(scope);
-    logger.info(`✅ Found ${projects.length} projects.`);
+
+    // Always bundle the entire project to ensure the skill integration context is complete
+    const allProjects = await projectScanner.scan();
+    // Scope limits what we explore and strategize on
+    const projects = scope ? await projectScanner.scan(scope) : allProjects;
+
+    logger.info(`✅ Found ${projects.length} target projects${scope ? ' in scope' : ''}:`);
     for (const p of projects) {
-      logger.info(`   - ${p.name} (${path.relative(process.cwd(), p.path)})`);
+      logger.info(`   - ${p.name} (${path.relative(root, p.path)})`);
     }
 
     // 0.5 Build Distributed Skill Index
@@ -67,7 +80,7 @@ export default class LearnCommand extends BaseCommand {
       string,
       { path: string; overrides?: ReskillConfigOverrides }
     >();
-    for (const p of projects) {
+    for (const p of allProjects) {
       if (fs.existsSync(p.skillDir)) {
         try {
           const skillsInProject = fs.readdirSync(p.skillDir, { withFileTypes: true });
@@ -87,8 +100,8 @@ export default class LearnCommand extends BaseCommand {
       }
     }
 
-    const bundler = new Bundler(config);
-    await bundler.bundle(projects);
+    const bundler = new Bundler(config, root);
+    await bundler.bundle(allProjects);
     const bundleDir = bundler.getBundleDir();
 
     // 1. Explore
@@ -109,12 +122,17 @@ export default class LearnCommand extends BaseCommand {
     // Therefore, `evolve` must *not* bundle before generation. But `Architect` needs `bundleDir`. Let's re-read Architect! It reads from `.reskill/skills`.
     // If I don't bundle before Architect, it explores nothing. The simplest approach: keep `Bundler` here, but move the Symlink/Initializer/Context to the end. Or call Setup twice.
     // Let's just execute `SetupCommand` at the end!
-    const explorer = new Explorer(projects, config.constitution, TMP_DIR);
-    const knowledgeGraph = await explorer.discover();
+    const recommendationsFile = path.resolve(root, '.reskill', 'recommendations.md');
+
+    const explorer = new Explorer(projects, config.constitution, TMP_DIR, options.edit);
+    const knowledgeGraph = await explorer.discover(options.edit ? recommendationsFile : undefined);
 
     // 2. Strategize
-    const architect = new Architect(bundleDir, TMP_DIR);
-    const plan = await architect.strategize(knowledgeGraph);
+    const architect = new Architect(bundleDir, TMP_DIR, options.edit);
+    const plan = await architect.strategize(
+      knowledgeGraph,
+      options.edit ? recommendationsFile : undefined,
+    );
 
     logger.debug('Skill Plan Proposed by Architect:', plan);
 
@@ -137,7 +155,7 @@ export default class LearnCommand extends BaseCommand {
         }
 
         if (scope) {
-          const resolvedPatternPath = path.resolve(process.cwd(), patternPath);
+          const resolvedPatternPath = path.resolve(root, patternPath);
           const relativeToScope = path.relative(scope, resolvedPatternPath);
           if (relativeToScope.startsWith('..') || path.isAbsolute(relativeToScope)) {
             this.warn(
@@ -160,11 +178,11 @@ export default class LearnCommand extends BaseCommand {
           // Fallback: This case shouldn't happen much with the new flattened architecture since everything is bundled
           // but if we are creating a NEW skill that isn't in the index yet, we might need a default project.
           // For now, let's assume skills are created in the first project encountered or a default if not found.
-          if (projects.length === 0) {
+          if (allProjects.length === 0) {
             logger.error(`Cannot create skill ${skillName}: no projects found to host it.`);
             continue;
           }
-          const defaultProject = projects[0];
+          const defaultProject = allProjects[0];
           // We probably want to split the skillName back to project-skill if it follows the pattern
           // or just put it in the first project's .skills directory.
           targetSkillPath = path.join(
@@ -188,16 +206,77 @@ export default class LearnCommand extends BaseCommand {
         }
 
         try {
-          const canonFile = await stageAuditor(target, config);
-          const driftFile = await stageCritic(target, canonFile, config);
+          const canonFile = await stageAuditor(target, config, root, options.edit);
+          const driftFile = await stageCritic(target, canonFile, config, root, options.edit);
           await hooks.onDriftDetected(target, driftFile);
 
-          await stageInstructor(target, canonFile, driftFile, config);
+          let verificationSuccess = false;
+          let attempts = 0;
+          const MAX_ATTEMPTS = 3;
+          let gauntletReportPath: string | undefined = undefined;
+
+          while (attempts < MAX_ATTEMPTS && !verificationSuccess) {
+            attempts++;
+            await stageInstructor(
+              target,
+              canonFile,
+              driftFile,
+              config,
+              root,
+              options.edit,
+              gauntletReportPath,
+            );
+
+            logger.info(
+              `🔍 Verifying skill format and lint (Attempt ${attempts}/${MAX_ATTEMPTS})...`,
+            );
+            try {
+              execSync('npm run format', { cwd: root, stdio: 'pipe' });
+              execSync('npm run lint', { cwd: root, stdio: 'pipe' });
+
+              verificationSuccess = true;
+              logger.success(`✅ Skill ${skillName} passed verification!`);
+            } catch (error: any) {
+              const output = error.stdout?.toString() || error.stderr?.toString() || error.message;
+              logger.warn(`❌ Verification failed for ${skillName}:\n${output}`);
+
+              gauntletReportPath = path.join(
+                TMP_DIR,
+                `${target.name.replace(/\\s+/g, '-')}-gauntlet.txt`,
+              );
+              fs.writeFileSync(gauntletReportPath, output);
+              logger.info('🔄 Feeding errors back to instructor for correction...');
+            }
+          }
+
+          if (!verificationSuccess) {
+            logger.error(`Failed to verify skill ${skillName} after ${MAX_ATTEMPTS} attempts.`);
+          }
+
           await hooks.onSkillUpdated(target);
         } catch (error) {
           logger.error(`Failed to learn skill ${skillName}: ${error}`);
         }
       }
+    }
+
+    if (!options.edit) {
+      logger.info('📝 Compiling high value recommendations...');
+      const driftFilesFolder = TMP_DIR;
+      if (!fs.existsSync(path.dirname(recommendationsFile))) {
+        fs.mkdirSync(path.dirname(recommendationsFile), { recursive: true });
+      }
+
+      const { AgentRunner } = await import('../../agents/AgentRunner.js');
+      await AgentRunner.run('Recommender', 'agents/recommender.md', {
+        drift_files_dir: driftFilesFolder,
+        skill_plan_file: path.join(TMP_DIR, 'skill-plan.json'),
+        knowledge_graph_file: path.join(TMP_DIR, 'knowledge-graph.json'),
+        constitution: config.constitution,
+        output_file: recommendationsFile,
+        cwd: root,
+      });
+      logger.success(`✅ Recommendations compiled to ${path.relative(root, recommendationsFile)}`);
     }
 
     // Run Setup Logic to integrate newly created/modified skills

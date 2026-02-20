@@ -7,13 +7,15 @@ import { logger } from './Logger.js';
 export class Architect {
   private bundleDir: string;
   private tmpDir: string;
+  private edit: boolean;
 
-  constructor(bundleDir: string, tmpDir: string) {
+  constructor(bundleDir: string, tmpDir: string, edit: boolean = false) {
     this.bundleDir = bundleDir;
     this.tmpDir = tmpDir;
+    this.edit = edit;
   }
 
-  async strategize(knowledgeGraphPath: string): Promise<SkillPlan> {
+  async strategize(knowledgeGraphPath: string, recommendationsFile?: string): Promise<SkillPlan> {
     logger.info('🏗️ Architect: Designing Skill Portfolio...');
 
     const skills = this.listSkills();
@@ -22,10 +24,12 @@ export class Architect {
 
     const outputFile = path.join(this.tmpDir, 'skill-plan.json');
 
-    AgentRunner.run('Architect', 'agents/architect.md', {
+    await AgentRunner.run('Architect', 'agents/architect.md', {
       knowledge_graph_file: knowledgeGraphPath,
       skills_list: skillsFile,
       output_file: outputFile,
+      edit_mode: this.edit,
+      recommendations_file: recommendationsFile,
     });
 
     if (fs.existsSync(outputFile)) {

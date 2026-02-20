@@ -31,8 +31,10 @@ export class PromptRunner {
       promptName,
       models: modelsArg = 'gemini-3-pro-preview,gemini-3-flash-preview',
       interactive = false,
+      cwd = process.cwd(),
       ...rest
     } = options;
+    const cwdStr = cwd as string;
     const argv = { ...options, ...rest };
 
     const fileName = promptName.endsWith('.md') ? promptName : `${promptName}.md`;
@@ -47,7 +49,7 @@ export class PromptRunner {
     }
 
     // 1. Check User Override
-    let promptFile = path.join(process.cwd(), '.agent/prompts', fileName);
+    let promptFile = path.join(cwdStr, '.agent/prompts', fileName);
     let usingOverride = false;
 
     try {
@@ -62,14 +64,14 @@ export class PromptRunner {
         await fs.access(promptFile);
       } catch {
         // One more fallback: .reskiller/prompts (initialized by Initializer)
-        const initializedPromptsDir = path.join(process.cwd(), '.reskiller/prompts');
+        const initializedPromptsDir = path.join(cwdStr, '.reskiller/prompts');
         promptFile = path.join(initializedPromptsDir, fileName);
 
         try {
           await fs.access(promptFile);
         } catch {
           throw new Error(
-            `Prompt file not found in:\n- ${path.join(process.cwd(), '.agent/prompts', fileName)}\n- ${path.join(PACKAGE_PROMPTS_DIR, fileName)}\n- ${promptFile}`,
+            `Prompt file not found in:\n- ${path.join(cwdStr, '.agent/prompts', fileName)}\n- ${path.join(PACKAGE_PROMPTS_DIR, fileName)}\n- ${promptFile}`,
           );
         }
       }
@@ -184,7 +186,7 @@ export class PromptRunner {
           if (Array.isArray(relativePath)) {
             const contents = await Promise.all(
               relativePath.map(async (p) => {
-                const resolvedPath = path.resolve(process.cwd(), p);
+                const resolvedPath = path.resolve(cwdStr, p);
                 if (!existsSync(resolvedPath)) {
                   logger.debug(`[Read] File not found: ${resolvedPath}`);
                   return `[File not found: ${resolvedPath}]`;
@@ -196,7 +198,7 @@ export class PromptRunner {
           } else if (typeof relativePath === 'string' && relativePath.includes(',')) {
             const contents = await Promise.all(
               relativePath.split(',').map(async (p) => {
-                const resolvedPath = path.resolve(process.cwd(), p.trim());
+                const resolvedPath = path.resolve(cwdStr, p.trim());
                 if (!existsSync(resolvedPath)) {
                   logger.debug(`[Read] File not found: ${resolvedPath}`);
                   return `[File not found: ${resolvedPath}]`;
@@ -207,7 +209,7 @@ export class PromptRunner {
             return contents.join('\n\n');
           }
 
-          const resolvedPath = path.resolve(process.cwd(), relativePath as string);
+          const resolvedPath = path.resolve(cwdStr, relativePath as string);
           if (!existsSync(resolvedPath)) {
             logger.debug(`[Read] File not found: ${resolvedPath}`);
             return `[File not found: ${resolvedPath}]`;

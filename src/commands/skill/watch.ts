@@ -27,8 +27,9 @@ export default class WatchCommand extends BaseCommand {
     }
 
     // Auto-initialize environment
+    const root = this.projectRoot || process.cwd();
     const { Initializer } = await import('../../core/Initializer.js');
-    Initializer.initialize(config, this.projectRoot || process.cwd());
+    Initializer.initialize(config, root);
 
     const licenseKey = config.licenseKey || process.env.RESKILL_LICENSE_KEY;
     if (!licenseKey) {
@@ -45,7 +46,7 @@ export default class WatchCommand extends BaseCommand {
 
     // Discover projects to watch
     const { ProjectScanner } = await import('../../core/ProjectScanner.js');
-    const projectScanner = new ProjectScanner(config);
+    const projectScanner = new ProjectScanner(config, root);
     const projects = await projectScanner.scan();
 
     // Setup watcher
