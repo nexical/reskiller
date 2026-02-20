@@ -111,7 +111,7 @@ export async function updateContextFiles(config: ReskillConfig, cwd: string = pr
         const description = match ? match[1].trim() : 'No description provided.';
 
         // Get path relative to workspace root so .reskill is at the top level
-        const relPath = '/' + path.relative(cwd, skillMdPath);
+        const relPath = path.relative(cwd, skillMdPath);
         skillLines.push(`- **[${skill}](${relPath})**: ${description}`);
       }
     }
