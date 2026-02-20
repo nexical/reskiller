@@ -8,6 +8,7 @@ import nunjucks from 'nunjucks';
 import { spawn } from 'node:child_process';
 import readline from 'node:readline';
 import { logger } from '../core/Logger.js';
+import chalk from 'chalk';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_PROMPTS_DIR = path.join(__dirname, '../../prompts');
@@ -338,13 +339,12 @@ export class PromptRunner {
 
       child.stdout?.on('data', (data) => {
         const chunk = data.toString();
-        process.stdout.write(chunk);
+        process.stdout.write(chalk.yellow(chunk));
         stdoutData += chunk;
       });
 
       child.stderr?.on('data', (data) => {
         const chunk = data.toString();
-        process.stderr.write(chunk);
         stderrData += chunk;
       });
 
@@ -363,6 +363,9 @@ export class PromptRunner {
           logger.warn(`[Agent] Model ${model} exhausted (429). Duration: ${duration}ms`);
           resolve({ code: exitCode, shouldRetry: true, output: stdoutData });
         } else {
+          if (exitCode !== 0 && stderrData) {
+            process.stderr.write(stderrData);
+          }
           resolve({ code: exitCode, shouldRetry: false, output: stdoutData });
         }
       });
