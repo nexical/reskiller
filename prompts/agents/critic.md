@@ -25,9 +25,11 @@ You are looking for "Drift" - where the documentation is outdated, vague, or inc
 {{ read(constitution.architecture) }}
 </arch_doc>
 {% if constitution.patterns %}
-<patterns_doc path="{{ constitution.patterns }}">
-{{ read(constitution.patterns) }}
+{% for pattern_path in constitution.patterns %}
+<patterns_doc path="{{ pattern_path }}">
+{{ read(pattern_path) }}
 </patterns_doc>
+{% endfor %}
 {% endif %}
 </global_docs>
 
@@ -39,7 +41,7 @@ You are looking for "Drift" - where the documentation is outdated, vague, or inc
 <task>
 Compare the Canon (JSON) against:
 1. The Skill Directory (Markdown, Templates, Examples).
-2. The Global Architecture Docs (`{{ constitution.architecture }}` and `{{ constitution.patterns }}`).
+2. The Global Architecture Docs (`{{ constitution.architecture }}`{% if constitution.patterns %} and {% for p in constitution.patterns %}`{{ p }}`{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}).
 
 The `SKILL.md` is the entrypoint for the localized skill.
 The Global Docs are the Single Source of Truth for the System.
@@ -57,7 +59,7 @@ Generate a "Drift Report" in Markdown format and WRITE IT to `{{ output_file }}`
 ## Violations
 
 - [Severity: High/Medium/Low] Description of the violation.
-  - _Source_: (SKILL.md | {{ constitution.architecture }} | {{ constitution.patterns }} | templates/...)
+  - _Source_: (SKILL.md | {{ constitution.architecture }}{% if constitution.patterns %}{% for p in constitution.patterns %} | {{ p }}{% endfor %}{% endif %} | templates/...)
   - _Doc says / Code has_: "..."
   - _Canon Rule_: "..."
 - [Severity: CRITICAL] Documentation instructs manual edit of automated file.
@@ -69,6 +71,6 @@ Generate a "Drift Report" in Markdown format and WRITE IT to `{{ output_file }}`
 ## Recommendations
 
 - Specific instructions on how to rewrite the `SKILL.md`.
-- Specific instructions on how to update `{{ constitution.architecture }}` or `{{ constitution.patterns }}` if they are outdated.
+- Specific instructions on how to update `{{ constitution.architecture }}`{% if constitution.patterns %}{% for p in constitution.patterns %} or `{{ p }}`{% endfor %}{% endif %} if they are outdated.
 - Specific instructions on what templates/examples to create or update in `{{ skill_dir }}`.
   </task>

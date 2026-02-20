@@ -21,9 +21,11 @@ You effectively "Patch" the documentation using the Drift Report.
 {{ read(constitution.architecture) }}
 </arch_doc>
 {% if constitution.patterns %}
-<patterns_doc path="{{ constitution.patterns }}">
-{{ read(constitution.patterns) }}
+{% for pattern_path in constitution.patterns %}
+<patterns_doc path="{{ pattern_path }}">
+{{ read(pattern_path) }}
 </patterns_doc>
+{% endfor %}
 {% endif %}
 </global_docs>
 
@@ -41,7 +43,7 @@ You effectively "Patch" the documentation using the Drift Report.
 You are managing the content of the Skill Directory: `{{ skill_dir }}`.
 The entrypoint is `{{ target_file }}` (SKILL.md), but you should also manage templates, examples, and scripts within that directory.
 
-You are ALSO responsible for keeping the Global Docs (`{{ constitution.architecture }}`{% if constitution.patterns %}, `{{ constitution.patterns }}`{% endif %}) in sync with reality.
+You are ALSO responsible for keeping the Global Docs (`{{ constitution.architecture }}`{% if constitution.patterns %}{% for p in constitution.patterns %}, `{{ p }}`{% endfor %}{% endif %}) in sync with reality.
 
 {% if gauntlet_report_file %}
 CRITICAL: The previous attempt to refine this skill FAILED verification.
@@ -54,7 +56,7 @@ Execute the recommendations from the Drift Report.
 1.  **Rewrite SKILL.md**: Use `write_to_file` to update `{{ target_file }}`.
 2.  **Create/Update Templates**: If the report recommends new templates, use `write_to_file` to create them in `{{ skill_dir }}/templates/`.
 3.  **Create/Update Examples**: If the report recommends new examples, use `write_to_file` to create them in `{{ skill_dir }}/examples/`.
-4.  **Update Global Docs**: If the Drift Report identifies that `{{ constitution.architecture }}` or `{{ constitution.patterns }}` are outdated, use `write_to_file` to update them.
+4.  **Update Global Docs**: If the Drift Report identifies that `{{ constitution.architecture }}`{% if constitution.patterns %}{% for p in constitution.patterns %} or `{{ p }}`{% endfor %}{% endif %} are outdated, use `write_to_file` to update them.
 
 Do not limit yourself to just the markdown file. Make the System coherent.
 </task>

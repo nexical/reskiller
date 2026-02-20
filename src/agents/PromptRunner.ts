@@ -37,6 +37,15 @@ export class PromptRunner {
 
     const fileName = promptName.endsWith('.md') ? promptName : `${promptName}.md`;
 
+    // Normalize constitution.patterns to always be an array if it's defined
+    if (
+      argv.constitution &&
+      (argv.constitution as any).patterns &&
+      !Array.isArray((argv.constitution as any).patterns)
+    ) {
+      (argv.constitution as any).patterns = [(argv.constitution as any).patterns];
+    }
+
     // 1. Check User Override
     let promptFile = path.join(process.cwd(), '.agent/prompts', fileName);
     let usingOverride = false;
