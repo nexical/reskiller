@@ -78,6 +78,7 @@ export class ProjectScanner {
           } else if (scopeInsideProject) {
             // Update project path to scope
             projectPath = scope;
+            finalSkillDir = path.join(scope, '.skills');
           } else {
             // Exclude
             continue;

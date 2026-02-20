@@ -103,6 +103,9 @@ export class PromptRunner {
           await pack(
             [targetPath],
             {
+              input: {
+                maxFileSize: 1024 * 1024 * 10, // 10MB
+              },
               output: {
                 filePath: tempOutputFile,
                 style: 'xml',
@@ -124,6 +127,20 @@ export class PromptRunner {
                 gitSortByChanges: false,
                 includeFullDirectoryStructure: false,
               },
+              ignore: {
+                useGitignore: true,
+                useDotIgnore: true,
+                useDefaultPatterns: true,
+                customPatterns: [],
+              },
+              include: [],
+              security: {
+                enableSecurityCheck: false,
+              },
+              tokenCount: {
+                encoding: 'o200k_base',
+              },
+              cwd: targetPath,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any,
             undefined,
