@@ -46,7 +46,7 @@ describe('Pipeline', () => {
   });
 
   describe('Stage wrappers', () => {
-    const target = { name: 'Test Skill', skillPath: '/skill/path', truthPath: '/truth/path' };
+    const target = { name: 'Test Skill', skillPath: '/skill/path', patternPath: '/truth/path' };
 
     it('stageAuditor should call AgentRunner', async () => {
       const result = await stageAuditor(target, mockConfig as unknown as ReskillConfig);

@@ -25,9 +25,9 @@ You are looking for "Drift" - where the documentation is outdated, vague, or inc
 {{ read(constitution.architecture) }}
 </arch_doc>
 {% if constitution.patterns %}
-<modules_doc path="{{ constitution.patterns }}">
+<patterns_doc path="{{ constitution.patterns }}">
 {{ read(constitution.patterns) }}
-</modules_doc>
+</patterns_doc>
 {% endif %}
 </global_docs>
 
@@ -39,7 +39,7 @@ You are looking for "Drift" - where the documentation is outdated, vague, or inc
 <task>
 Compare the Canon (JSON) against:
 1. The Skill Directory (Markdown, Templates, Examples).
-2. The Global Architecture Docs (`{{ arch_file }}` and `{{ modules_file }}`).
+2. The Global Architecture Docs (`{{ constitution.architecture }}` and `{{ constitution.patterns }}`).
 
 The `SKILL.md` is the entrypoint for the localized skill.
 The Global Docs are the Single Source of Truth for the System.
@@ -48,12 +48,7 @@ Identify instances where:
 
 1. Access patterns in the Codebase Canon violate rules in the Global Docs (Drift).
 2. The Skill Documentation violates usage found in the Canon OR Global Docs.
-3. The Skill Documentation instructs the user to manually create/edit files that are marked as `"generated": true` in the Canon.
-
-**GENERATOR COMPLIANCE**:
-The `packages/generator` project owns specific files (e.g. `src/sdk/*`, `src/actions/*`, `test/integration/api/generated/*`).
-If a file is tagged `"generated": true` in the Canon, the Documentation MUST NOT instruct manual creation/editing.
-Instead, it MUST instruct the user to define models in `models.yaml` or routes in `api.yaml` and run the generator.
+3. The Skill Documentation instructs the user to manually create/edit files that are structurally automated according to the Global Docs.
 
 Generate a "Drift Report" in Markdown format and WRITE IT to `{{ output_file }}` using the `write_to_file` tool.
 
@@ -62,12 +57,10 @@ Generate a "Drift Report" in Markdown format and WRITE IT to `{{ output_file }}`
 ## Violations
 
 - [Severity: High/Medium/Low] Description of the violation.
-  - _Source_: (SKILL.md | {{ arch_file }} | {{ modules_file }} | templates/...)
+  - _Source_: (SKILL.md | {{ constitution.architecture }} | {{ constitution.patterns }} | templates/...)
   - _Doc says / Code has_: "..."
   - _Canon Rule_: "..."
-- [Severity: CRITICAL] Documentation instructs manual edit of GENERATED file.
-  - _File_: `src/actions/foo-action.ts` (Example)
-  - _Correct Approach_: "Define operation in `models.yaml` or `api.yaml`."
+- [Severity: CRITICAL] Documentation instructs manual edit of automated file.
 
 ## Missing Patterns (Gaps)
 
@@ -76,6 +69,6 @@ Generate a "Drift Report" in Markdown format and WRITE IT to `{{ output_file }}`
 ## Recommendations
 
 - Specific instructions on how to rewrite the `SKILL.md`.
-- Specific instructions on how to update `{{ arch_file }}` or `{{ modules_file }}` if they are outdated.
+- Specific instructions on how to update `{{ constitution.architecture }}` or `{{ constitution.patterns }}` if they are outdated.
 - Specific instructions on what templates/examples to create or update in `{{ skill_dir }}`.
   </task>

@@ -11,41 +11,43 @@ Values:
 </context>
 
 <task>
-Analyze the provided list of modules (including the 'core' module) and their rudimentary properties.
+Analyze the provided list of components, packages, or sub-directories in the project.
 
 Your goal is to:
 
-1.  **Analyze Core**: deeply understand the patterns in the `core` module (files in `src/`). This is the "Kernel".
-2.  **Identify Exemplars**: Find the best modules that align with Core's philosophy for each category.
-3.  **Find Drifters**: Identify modules that deviate significantly from the Core patterns.
+1.  **Identify Global Patterns**: deeply understand the architectural and coding standards governing the project.
+2.  **Identify Reference Components**: Find the directories/packages that best exemplify these patterns.
+3.  **Find Deviations**: Identify areas of the project that deviate significantly from the established patterns.
 
-Input Modules:
+CRITICAL REQUIREMENT: You MUST ONLY select reference paths from the exact `Input Components` JSON provided. Do NOT hallucinate paths or suggest components that are not explicitly listed in the input.
+
+Input Components:
 {{ context(modules_list) }}
 
 Output a JSON object with the following structure:
 {
-"core_patterns": [
+"global_patterns": [
 { "name": "Pattern Name", "description": "Description", "files": ["example/file.ts"] }
 ],
-"domains": {
+"component_types": {
 "api": {
-"exemplar": "path/to/best-api-module",
+"reference_path": "path/to/best-api-component",
 "reasoning": "Why this is the best example",
 "patterns": ["Services", "Actions"]
 },
 "ui": {
-"exemplar": "path/to/best-ui-module",
+"reference_path": "path/to/best-ui-component",
 "reasoning": "Why this is the best example",
 "patterns": ["Registry", "Components"]
 }
-// ... other domains
+// ... other component types
 },
 "emerging_patterns": [
 {
 "name": "Pattern Name",
 "description": "What is it?",
 "frequency": "High/Medium/Low",
-"example_module": "path/to/module"
+"example_path": "path/to/component"
 }
 ]
 }

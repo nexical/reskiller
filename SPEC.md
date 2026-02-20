@@ -19,7 +19,7 @@ In traditional development, "Best Practices" and "Architecture" are static docum
 
 ## 2. Architecture
 
-Reskill operates on a cyclical **Evolutionary Loop**: `Explore -> Strategize -> Execute`.
+Reskill operates on a cyclical **Learning Loop**: `Explore -> Strategize -> Execute`.
 
 ### 2.1 The Components
 
@@ -139,26 +139,16 @@ Reskill automatically initializes its environment (scaffolds directories and cop
 
 ### CLI Commands
 
-#### `evolve`
+#### `learn`
 
-Runs the full evolutionary loop.
+Runs the full learning loop.
 
 ```bash
-nexical skill evolve
+nexical skill learn
 ```
 
 - Best for CI/CD pipelines or nightly builds.
-- Updates all skills based on the current state of the Kernel.
-
-#### `refine <skill> <module>`
-
-Manually refine a specific skill using a specific module as the exemplar.
-
-```bash
-nexical skill refine "API Development" "apps/backend/modules/user"
-```
-
-- Best for "Golden Path" updates.
+- Updates all skills based on the current architectural patterns.
 
 #### `watch` (Pro)
 

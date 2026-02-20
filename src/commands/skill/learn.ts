@@ -13,13 +13,13 @@ import * as fs from 'node:fs';
 
 const TMP_DIR = '.agent/tmp/reskill';
 
-export default class EvolveCommand extends BaseCommand {
+export default class LearnCommand extends BaseCommand {
   static description = 'Full cycle: Explore -> Strategize -> Execute';
   static args = {
     args: [
       {
         name: 'directory',
-        description: 'Optional directory to scope the evolution to',
+        description: 'Optional directory to scope the learning to',
         required: false,
       },
     ],
@@ -46,7 +46,7 @@ export default class EvolveCommand extends BaseCommand {
     let scope: string | undefined;
     if (options.directory) {
       scope = path.resolve(root, options.directory);
-      logger.info(`🎯 Scoping evolution to: ${scope}`);
+      logger.info(`🎯 Scoping learning to: ${scope}`);
       if (!fs.existsSync(scope)) {
         logger.error(`Scoped directory does not exist: ${scope}`);
         return;
@@ -119,23 +119,32 @@ export default class EvolveCommand extends BaseCommand {
     logger.debug('Skill Plan Proposed by Architect:', plan);
 
     // 3. Execute Loop
-    logger.info('🚀 Executing Skill Evolution Plan...');
+    logger.info('🚀 Executing Skill Learning Plan...');
 
     for (const item of plan.plan) {
       if (item.type === 'create_skill' || item.type === 'update_skill') {
         const skillName = item.target_skill || item.name;
-        const modulePath = item.exemplar_module;
+        const patternPath = item.pattern_path;
 
         if (!skillName) {
           this.warn(`⚠️  Skipping item: missing skill name ${JSON.stringify(item)}`);
           continue;
         }
 
-        if (!modulePath) {
-          this.warn(
-            `⚠️  Skipping ${skillName}: missing exemplar module (truth path) ${JSON.stringify(item)}`,
-          );
+        if (!patternPath) {
+          this.warn(`⚠️  Skipping ${skillName}: missing pattern path ${JSON.stringify(item)}`);
           continue;
+        }
+
+        if (scope) {
+          const resolvedPatternPath = path.resolve(process.cwd(), patternPath);
+          const relativeToScope = path.relative(scope, resolvedPatternPath);
+          if (relativeToScope.startsWith('..') || path.isAbsolute(relativeToScope)) {
+            this.warn(
+              `⚠️  Skipping ${skillName}: pattern path ${patternPath} is outside the allowed scope (${scope}).`,
+            );
+            continue;
+          }
         }
 
         // RESOLVE TARGET PATH
@@ -169,7 +178,7 @@ export default class EvolveCommand extends BaseCommand {
         const target: Target = {
           name: skillName,
           skillPath: targetSkillPath,
-          truthPath: modulePath,
+          patternPath: patternPath,
           overrides: targetOverrides,
         };
 
@@ -186,7 +195,7 @@ export default class EvolveCommand extends BaseCommand {
           await stageInstructor(target, canonFile, driftFile, config);
           await hooks.onSkillUpdated(target);
         } catch (error) {
-          logger.error(`Failed to evolve skill ${skillName}: ${error}`);
+          logger.error(`Failed to learn skill ${skillName}: ${error}`);
         }
       }
     }

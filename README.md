@@ -5,9 +5,8 @@ Reskill is a framework for creating, evolving, and refining "Skills" (system pro
 It treats skills as software artifacts that can be:
 
 1.  **Discovered**: Scanned from your codebase (`.skills` directories).
-2.  **Evolved**: Improved based on an "Exemplar" (truth) implementation using an Architect AI.
-3.  **Refined**: Polished through a rigorous audit/critic/instructor pipeline.
-4.  **Distributed**: Symlinked to consumption points (VS Code, Cursor, GitHub Copilot).
+2.  **Learned**: Improved based on architectural "Patterns" (truth) implementation using an Architect AI.
+3.  **Distributed**: Symlinked to consumption points (VS Code, Cursor, GitHub Copilot).
 
 ## Configuration
 
@@ -55,17 +54,13 @@ Reskill automatically initializes its environment on the first run of any comman
 
 ### Commands
 
-#### `nexical skill evolve`
+#### `nexical skill learn`
 
-Scans your projects for `.skills` directories, bundles them, and runs the Evolution Pipeline to create or update skills based on your code and constitution.
-
-#### `nexical skill refine [skill-name] [module-path]`
-
-Runs a targeted refinement loop on a specific skill, using the module path as the ground truth.
+Scans your projects for `.skills` directories, bundles them, and runs the Learning Pipeline to create or update skills based on your code's real-world patterns and constitution.
 
 #### `nexical skill watch` (Pro)
 
-Watches your project for file changes and incrementally refines relevant skills.
+Watches your project for file changes and incrementally updates relevant skills.
 
 ## Architecture
 

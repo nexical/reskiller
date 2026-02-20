@@ -21,9 +21,9 @@ You effectively "Patch" the documentation using the Drift Report.
 {{ read(constitution.architecture) }}
 </arch_doc>
 {% if constitution.patterns %}
-<modules_doc path="{{ constitution.patterns }}">
+<patterns_doc path="{{ constitution.patterns }}">
 {{ read(constitution.patterns) }}
-</modules_doc>
+</patterns_doc>
 {% endif %}
 </global_docs>
 
@@ -43,13 +43,6 @@ The entrypoint is `{{ target_file }}` (SKILL.md), but you should also manage tem
 
 You are ALSO responsible for keeping the Global Docs (`{{ constitution.architecture }}`{% if constitution.patterns %}, `{{ constitution.patterns }}`{% endif %}) in sync with reality.
 
-**GENERATOR PROTOCOL**:
-The system relies on `packages/generator` (invoked via `nexical`).
-
-- **NEVER** write templates for files that should be generated (Actions, SDKs, plain Services).
-- **ALWAYS** instruct the user to update `models.yaml` or `api.yaml`.
-- **ONLY** write templates for "Custom" logic that the generator cannot produce.
-
 {% if gauntlet_report_file %}
 CRITICAL: The previous attempt to refine this skill FAILED verification.
 Read the <gauntlet_feedback> carefully. It contains the specific errors or drift that need to be fixed.
@@ -61,7 +54,7 @@ Execute the recommendations from the Drift Report.
 1.  **Rewrite SKILL.md**: Use `write_to_file` to update `{{ target_file }}`.
 2.  **Create/Update Templates**: If the report recommends new templates, use `write_to_file` to create them in `{{ skill_dir }}/templates/`.
 3.  **Create/Update Examples**: If the report recommends new examples, use `write_to_file` to create them in `{{ skill_dir }}/examples/`.
-4.  **Update Global Docs**: If the Drift Report identifies that `ARCHITECTURE.md` or `MODULES.md` are outdated, use `write_to_file` to update them.
+4.  **Update Global Docs**: If the Drift Report identifies that `{{ constitution.architecture }}` or `{{ constitution.patterns }}` are outdated, use `write_to_file` to update them.
 
 Do not limit yourself to just the markdown file. Make the System coherent.
 </task>

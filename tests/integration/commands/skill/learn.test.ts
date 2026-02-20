@@ -4,10 +4,10 @@ import * as path from 'node:path';
 import * as fs from 'node:fs';
 import { CLI } from '@nexical/cli-core';
 
-describe('EvolveCommand Integration', () => {
+describe('LearnCommand Integration', () => {
   let projectDir: string;
-  let EvolveCommand: typeof import('../../../../src/commands/skill/evolve.js').default;
-  let command: InstanceType<typeof import('../../../../src/commands/skill/evolve.js').default>;
+  let LearnCommand: typeof import('../../../../src/commands/skill/learn.js').default;
+  let command: InstanceType<typeof import('../../../../src/commands/skill/learn.js').default>;
 
   beforeEach(async () => {
     vi.resetModules(); // Clear cache
@@ -66,7 +66,7 @@ describe('EvolveCommand Integration', () => {
               {
                 type: 'create_skill',
                 target_skill: 'test-skill',
-                exemplar_module: 'modules/test-mod',
+                pattern_path: 'modules/test-mod',
               },
             ],
           };
@@ -87,16 +87,28 @@ describe('EvolveCommand Integration', () => {
       },
     }));
 
+    // Mock SetupCommand
+    vi.doMock('../../../../src/commands/skill/setup.js', () => ({
+      default: class {
+        constructor() {}
+        async run() {
+          command.info('⚙️ Running Skill Integration Setup...');
+          command.success('Skills successfully integrated');
+          return true;
+        }
+      },
+    }));
+
     // Import Command
-    const mod = await import('../../../../src/commands/skill/evolve.js');
-    EvolveCommand = mod.default;
+    const mod = await import('../../../../src/commands/skill/learn.js');
+    LearnCommand = mod.default;
 
     // Setup mock CLI with config
     const mockCli = {
       // ...
     } as unknown as CLI;
 
-    command = new EvolveCommand(mockCli);
+    command = new LearnCommand(mockCli);
 
     // Manually inject config that would come from cli-core
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -132,7 +144,9 @@ describe('EvolveCommand Integration', () => {
     }
 
     // Verify plan execution
-    expect(command.success).toHaveBeenCalledWith(expect.stringContaining('Context files updated'));
+    expect(command.success).toHaveBeenCalledWith(
+      expect.stringContaining('Skills successfully integrated'),
+    );
 
     // Verify skill directory creation (Architect planned 'test-skill')
     // It should be created in the .skills directory of the project
@@ -150,7 +164,7 @@ describe('EvolveCommand Integration', () => {
     await command.run({ directory: 'sub2' });
 
     // Verify information log
-    expect(command.info).toHaveBeenCalledWith(expect.stringContaining('Scoping evolution to:'));
+    expect(command.info).toHaveBeenCalledWith(expect.stringContaining('Scoping learning to:'));
     expect(command.info).toHaveBeenCalledWith(
       expect.stringContaining(path.join(projectDir, 'sub2')),
     );

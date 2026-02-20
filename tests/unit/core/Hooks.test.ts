@@ -6,7 +6,7 @@ describe('Hooks', () => {
   it('should execute onDriftDetected without error', async () => {
     const debugSpy = vi.spyOn(logger, 'debug').mockImplementation(() => {});
     await hooks.onDriftDetected(
-      { name: 'test', skillPath: '/skill', truthPath: '/truth' },
+      { name: 'test', skillPath: '/skill', patternPath: '/truth' },
       'drift.diff',
     );
     expect(debugSpy).toHaveBeenCalledWith(expect.stringContaining('Drift detected'));
@@ -15,7 +15,7 @@ describe('Hooks', () => {
 
   it('should execute onSkillUpdated without error', async () => {
     const debugSpy = vi.spyOn(logger, 'debug').mockImplementation(() => {});
-    await hooks.onSkillUpdated({ name: 'test', skillPath: '/skill', truthPath: '/truth' });
+    await hooks.onSkillUpdated({ name: 'test', skillPath: '/skill', patternPath: '/truth' });
     expect(debugSpy).toHaveBeenCalledWith(expect.stringContaining('Skill test updated'));
     debugSpy.mockRestore();
   });

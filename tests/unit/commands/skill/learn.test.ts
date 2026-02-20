@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import EvolveCommand from '../../../../src/commands/skill/evolve.js';
+import LearnCommand from '../../../../src/commands/skill/learn.js';
 import * as configMod from '../../../../src/config.js';
 import { Explorer } from '../../../../src/core/Explorer.js';
 import { Architect } from '../../../../src/core/Architect.js';
@@ -34,8 +34,8 @@ vi.mock('../../../../src/commands/skill/setup.js', () => {
 // Mock CLI
 const mockCli = {} as unknown as CLI;
 
-describe('EvolveCommand', () => {
-  let command: EvolveCommand;
+describe('LearnCommand', () => {
+  let command: LearnCommand;
   const mockConfig = {
     discovery: { root: '.', markers: ['.skills'], ignore: [], depth: 1 },
     constitution: { architecture: 'Test', patterns: 'Test Patterns' },
@@ -44,16 +44,14 @@ describe('EvolveCommand', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    command = new EvolveCommand(mockCli);
+    command = new LearnCommand(mockCli);
     // Mock BaseCommand logger methods
     command.info = vi.fn();
     command.error = vi.fn();
     command.warn = vi.fn();
     command.success = vi.fn();
 
-    // Inject config as if from CLI
-    // @ts-expect-error - Mocking protected method
-    command.config = { reskill: mockConfig };
+    (command as any).config = { reskill: mockConfig };
 
     vi.mocked(configMod.getReskillConfig).mockReturnValue(mockConfig);
 
@@ -111,7 +109,7 @@ describe('EvolveCommand', () => {
     vi.mocked(Architect).mockImplementation(function () {
       return {
         strategize: vi.fn().mockResolvedValue({
-          plan: [{ type: 'create_skill', target_skill: 'test-skill', exemplar_module: 'path' }],
+          plan: [{ type: 'create_skill', target_skill: 'test-skill', pattern_path: 'path' }],
         }),
       } as unknown as Architect;
     });
@@ -126,7 +124,7 @@ describe('EvolveCommand', () => {
     vi.mocked(Architect).mockImplementation(function () {
       return {
         strategize: vi.fn().mockResolvedValue({
-          plan: [{ type: 'create_skill', target_skill: 'new-skill', exemplar_module: 'path' }],
+          plan: [{ type: 'create_skill', target_skill: 'new-skill', pattern_path: 'path' }],
         }),
       } as unknown as Architect;
     });
@@ -146,7 +144,7 @@ describe('EvolveCommand', () => {
         strategize: vi.fn().mockResolvedValue({
           plan: [
             { type: 'create_skill', target_skill: undefined },
-            { type: 'create_skill', target_skill: 's1', exemplar_module: undefined },
+            { type: 'create_skill', target_skill: 's1', pattern_path: undefined },
           ],
         }),
       } as unknown as Architect;
@@ -199,7 +197,7 @@ describe('EvolveCommand', () => {
             {
               type: 'update_skill',
               target_skill: 'proj1-distributed-skill',
-              exemplar_module: 'path',
+              pattern_path: 'path',
             },
           ],
         }),
@@ -252,7 +250,7 @@ describe('EvolveCommand', () => {
     vi.mocked(Architect).mockImplementation(function () {
       return {
         strategize: vi.fn().mockResolvedValue({
-          plan: [{ type: 'create_skill', target_skill: 'error-skill', exemplar_module: 'path' }],
+          plan: [{ type: 'create_skill', target_skill: 'error-skill', pattern_path: 'path' }],
         }),
       } as unknown as Architect;
     });
@@ -264,7 +262,7 @@ describe('EvolveCommand', () => {
     await command.run();
 
     expect(command.error).toHaveBeenCalledWith(
-      expect.stringContaining('Failed to evolve skill error-skill'),
+      expect.stringContaining('Failed to learn skill error-skill'),
     );
   });
 });

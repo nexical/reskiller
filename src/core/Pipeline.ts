@@ -22,7 +22,7 @@ export async function stageAuditor(target: Target, config: ReskillConfig): Promi
   if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
 
   await AgentRunner.run('Auditor', 'agents/auditor.md', {
-    module_path: target.truthPath,
+    pattern_path: target.patternPath,
     output_file: outputFile,
     constitution: finalConfig.constitution, // Use finalConfig
   });

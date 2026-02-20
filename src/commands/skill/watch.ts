@@ -75,12 +75,12 @@ export default class WatchCommand extends BaseCommand {
 
       // We can iterate over moduleDirs and platformDirs to see which one contains filePath.
       // If it's a platform file, maybe we need to update ALL skills?
-      // If it's a module file, we check if that module is an exemplar for any skill.
+      // If it's a project file, we check if that component is a pattern reference for any skill.
 
       // This requires loading the Knowledge Graph or Skills Plan.
       // Let's assume we have a way to know.
 
-      // For MVP, checking if it is an exemplar is hard without previous state.
+      // For MVP, checking if it is a pattern reference is hard without previous state.
       // We could run Architect to see if plan changes? expensive.
 
       logger.warn("Incremental update not fully implemented. Run 'reskill evolve' to update.");

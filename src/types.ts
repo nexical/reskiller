@@ -3,7 +3,7 @@ import { ReskillConfigOverrides } from './config.js';
 export interface Target {
   name: string;
   skillPath: string;
-  truthPath: string;
+  patternPath: string;
   overrides?: ReskillConfigOverrides;
 }
 
@@ -17,7 +17,7 @@ export interface SkillPlanItem {
   type: 'create_skill' | 'update_skill' | 'merge_skills' | 'delete_skill';
   name?: string;
   target_skill?: string;
-  exemplar_module?: string;
+  pattern_path?: string;
   reasoning: string;
 }
 
