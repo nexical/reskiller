@@ -20,6 +20,16 @@ vi.mock('../../../../src/core/Pipeline.js', async () => {
   return await import('../../../../tests/unit/mocks/Pipeline.js');
 });
 vi.mock('node:fs');
+export const mockSetupRun = vi.fn().mockResolvedValue(true);
+vi.mock('../../../../src/commands/skill/setup.js', () => {
+  return {
+    default: function MockSetupCommand() {
+      return {
+        run: mockSetupRun,
+      };
+    },
+  };
+});
 
 // Mock CLI
 const mockCli = {} as unknown as CLI;
@@ -108,7 +118,8 @@ describe('EvolveCommand', () => {
 
     await command.run();
     expect(Pipeline.ensureTmpDir).toHaveBeenCalled();
-    expect(command.success).toHaveBeenCalledWith(expect.stringContaining('Context files updated'));
+    // SetupCommand mock verification
+    expect(mockSetupRun).toHaveBeenCalled();
   });
 
   it('should create skill directory if missing', async () => {
@@ -177,7 +188,7 @@ describe('EvolveCommand', () => {
         ];
       }
       return [];
-    }) as any);
+    }) as unknown as typeof fs.readdirSync);
 
     // Architect plans to update this distributed skill
     // With the new naming convention, the skill name in the plan should be "proj1-distributed-skill"

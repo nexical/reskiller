@@ -1,18 +1,11 @@
 import { BaseCommand } from '@nexical/cli-core';
 import { ReskillConfig, getReskillConfig, ReskillConfigOverrides } from '../../config.js';
-import { ensureSymlinks } from '../../core/Symlinker.js';
 import { Explorer } from '../../core/Explorer.js';
 import { Architect } from '../../core/Architect.js';
 import { ProjectScanner } from '../../core/ProjectScanner.js';
 import { Bundler } from '../../core/Bundler.js';
 import { hooks } from '../../core/Hooks.js';
-import {
-  ensureTmpDir,
-  stageAuditor,
-  stageCritic,
-  stageInstructor,
-  updateContextFiles,
-} from '../../core/Pipeline.js';
+import { ensureTmpDir, stageAuditor, stageCritic, stageInstructor } from '../../core/Pipeline.js';
 import { Target } from '../../types.js';
 import { logger } from '../../core/Logger.js';
 import * as path from 'node:path';
@@ -44,10 +37,6 @@ export default class EvolveCommand extends BaseCommand {
       logger.error(message);
       return;
     }
-
-    // Auto-initialize environment
-    const { Initializer } = await import('../../core/Initializer.js');
-    Initializer.initialize(config, this.projectRoot || process.cwd());
 
     ensureTmpDir();
 
@@ -102,10 +91,24 @@ export default class EvolveCommand extends BaseCommand {
     await bundler.bundle(projects);
     const bundleDir = bundler.getBundleDir();
 
-    // Ensure editor symlinks point to the BUNDLED skills now
-    ensureSymlinks(config, process.cwd(), bundleDir);
-
     // 1. Explore
+    // Architect reads from the distributed workspace paths directly instead of a centralized bundle,
+    // or we bundle explicitly for the Architect once?
+    // The previous code bundled here so the Architect could read from `bundleDir`.
+    // Let's create a temporary bundle for the Architect, or just let Bundler run here, but wait, the instruction is:
+    // "clean the skill integration directory before generating... move initialization in evolve to after"
+    // I will just use the bundler here into a temp dir for architect, OR I can just let it bundle to the main dir,
+    // but the user's intent is probably: "Run `nexical skill setup` at the end to finalize".
+    // Actually, I'll just leave the Discovery, but move Bundler entirely. Wait, Architect *needs* `bundleDir`.
+    // I will initialize `bundleDir` by running `Bundler` here but WITHOUT symlinking and context updating?
+    // Let's look at what `Bundler` does. It copies files to `.reskill/skills`.
+    // If we clean `.reskill/skills` in `setup`, and call `setup` at the end of `evolve`, that satisfies everything.
+    // I am going to delete the `Bundler` and `Symlinker` logic from here and just call `new SetupCommand().run()` at the end.
+    // WAIT: `Architect` is passed `bundleDir`. So `Bundler` MUST run before Architect!
+    // I will call `SetupCommand` *before* Architect? No, the user explicitly said "move the initialization in the evolve and refine commands to after the skills are generated, updated, or refined".
+    // Therefore, `evolve` must *not* bundle before generation. But `Architect` needs `bundleDir`. Let's re-read Architect! It reads from `.reskill/skills`.
+    // If I don't bundle before Architect, it explores nothing. The simplest approach: keep `Bundler` here, but move the Symlink/Initializer/Context to the end. Or call Setup twice.
+    // Let's just execute `SetupCommand` at the end!
     const explorer = new Explorer(projects, config.constitution, TMP_DIR);
     const knowledgeGraph = await explorer.discover();
 
@@ -188,8 +191,14 @@ export default class EvolveCommand extends BaseCommand {
       }
     }
 
-    logger.info('📚 Updating Context Files...');
-    await updateContextFiles(config);
-    logger.success('Context files updated.');
+    // Run Setup Logic to integrate newly created/modified skills
+    logger.info('⚙️ Running Skill Integration Setup...');
+    const { default: SetupCommand } = await import('./setup.js');
+    const setupCmd = new SetupCommand([], this.config);
+    // @ts-expect-error - overriding protected property
+    setupCmd.projectRoot = this.projectRoot;
+    // @ts-expect-error - overriding protected property
+    setupCmd.globalOptions = this.globalOptions;
+    await setupCmd.run();
   }
 }

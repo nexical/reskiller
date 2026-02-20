@@ -13,6 +13,18 @@ vi.mock('node:child_process', async () => {
   };
 });
 
+vi.mock('repomix', () => {
+  return {
+    pack: vi.fn().mockImplementation(async (targets, config) => {
+      const outPath = config?.output?.filePath;
+      if (outPath) {
+        fs.writeFileSync(outPath, '<dump></dump>', 'utf-8');
+      }
+      return {};
+    }),
+  };
+});
+
 describe('AgentRunner Integration', () => {
   const tmpDir = path.join(os.tmpdir(), `reskill-integration-${Date.now()}`);
 

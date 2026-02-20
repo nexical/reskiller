@@ -1,16 +1,9 @@
 import { BaseCommand, type CommandDefinition } from '@nexical/cli-core';
 import { getReskillConfig, ReskillConfigOverrides } from '../../config.js';
-import { ensureSymlinks } from '../../core/Symlinker.js';
 import { hooks } from '../../core/Hooks.js';
 import { ProjectScanner } from '../../core/ProjectScanner.js';
 import { logger } from '../../core/Logger.js';
-import {
-  ensureTmpDir,
-  stageAuditor,
-  stageCritic,
-  stageInstructor,
-  updateContextFiles,
-} from '../../core/Pipeline.js';
+import { ensureTmpDir, stageAuditor, stageCritic, stageInstructor } from '../../core/Pipeline.js';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 
@@ -47,15 +40,8 @@ export default class RefineCommand extends BaseCommand {
       return;
     }
 
-    // Auto-initialize environment
-    const { Initializer } = await import('../../core/Initializer.js');
-    Initializer.initialize(config, this.projectRoot || process.cwd());
-
     // Ensure tmp dir
     ensureTmpDir();
-
-    // Ensure symlinks are set up
-    ensureSymlinks(config);
 
     this.info(`Refining ${skillName} using ${modulePath}...`);
 
@@ -105,8 +91,16 @@ export default class RefineCommand extends BaseCommand {
     await stageInstructor(target, canonFile, driftFile, config);
     await hooks.onSkillUpdated(target);
 
-    logger.info('📚 Updating Context Files...');
-    await updateContextFiles(config);
+    // Run Setup Logic to integrate newly created/modified skills
+    logger.info('⚙️ Running Skill Integration Setup...');
+    const { default: SetupCommand } = await import('./setup.js');
+    const setupCmd = new SetupCommand([], this.config);
+    // @ts-expect-error - overriding protected property
+    setupCmd.projectRoot = this.projectRoot;
+    // @ts-expect-error - overriding protected property
+    setupCmd.globalOptions = this.globalOptions;
+    await setupCmd.run();
+
     logger.success('Refinement complete.');
   }
 }

@@ -1,10 +1,11 @@
+import { existsSync, statSync } from 'node:fs';
 import fs from 'node:fs/promises';
-import { readFileSync, existsSync, statSync } from 'node:fs';
+import { pack } from 'repomix';
 import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import nunjucks from 'nunjucks';
-import { spawn, execSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import readline from 'node:readline';
 import { logger } from '../core/Logger.js';
 
@@ -73,70 +74,126 @@ export class PromptRunner {
       lstripBlocks: true,
     });
 
+    const asyncResolvers = new Map<string, Promise<string>>();
+    let resolverId = 0;
+
     env.addGlobal('context', (targetPath: string) => {
-      try {
-        if (!existsSync(targetPath)) {
-          logger.debug(`[Context] Path not found: ${targetPath}`);
-          return `[Path not found: ${targetPath}]`;
-        }
+      const id = `__NEXICAL_ASYNC_CONTEXT_${resolverId++}__`;
+      const promise = (async () => {
+        try {
+          if (!existsSync(targetPath)) {
+            logger.debug(`[Context] Path not found: ${targetPath}`);
+            return `[Path not found: ${targetPath}]`;
+          }
 
-        const stats = statSync(targetPath);
-        if (stats.isFile()) {
-          logger.debug(`[Context] Reading file directly at: ${targetPath}`);
-          const content = readFileSync(targetPath, 'utf-8');
-          return `<CODEBASE_CONTEXT path="${targetPath}">\n${content}\n</CODEBASE_CONTEXT>`;
-        }
+          const stats = statSync(targetPath);
+          if (stats.isFile()) {
+            logger.debug(`[Context] Reading file directly at: ${targetPath}`);
+            const content = await fs.readFile(targetPath, 'utf-8');
+            return `<CODEBASE_CONTEXT path="${targetPath}">\n${content}\n</CODEBASE_CONTEXT>`;
+          }
 
-        logger.debug(`[Context] Analyzing codebase at: ${targetPath}`);
-        const output = execSync(
-          `npx -y repomix --stdout --quiet --style xml --include "${targetPath}/**/*" --ignore "**/node_modules,**/dist"`,
-          { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'inherit'] },
-        );
-        return `<CODEBASE_CONTEXT path="${targetPath}">\n${output}\n</CODEBASE_CONTEXT>`;
-      } catch {
-        logger.error(`[Context] Error generating context for ${targetPath}`);
-        return `[Error generating context for ${targetPath}]`;
-      }
+          logger.debug(`[Context] Analyzing codebase at: ${targetPath}`);
+
+          const tempOutputFile = path.join(
+            os.tmpdir(),
+            `repomix-output-${Date.now()}-${Math.random().toString(36).substring(7)}.xml`,
+          );
+
+          await pack(
+            [targetPath],
+            {
+              output: {
+                filePath: tempOutputFile,
+                style: 'xml',
+                showLineNumbers: false,
+                fileSummary: false,
+                directoryStructure: false,
+                removeComments: false,
+                removeEmptyLines: false,
+                includeEmptyDirectories: false,
+                topFilesLength: 5,
+                parsableStyle: false,
+                files: true,
+                compress: false,
+                truncateBase64: true,
+                copyToClipboard: false,
+                includeDiffs: false,
+                includeLogs: false,
+                includeLogsCount: 0,
+                gitSortByChanges: false,
+                includeFullDirectoryStructure: false,
+              },
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } as any,
+            undefined,
+            undefined,
+            undefined,
+            {
+              skillName: 'temp',
+            },
+          );
+
+          const output = await fs.readFile(tempOutputFile, 'utf-8');
+          try {
+            await fs.unlink(tempOutputFile);
+          } catch {
+            /* ignore */
+          }
+
+          return `< CODEBASE_CONTEXT path = "${targetPath}" >\n${output}\n </CODEBASE_CONTEXT>`;
+        } catch (e) {
+          logger.error(`[Context] Error generating context for ${targetPath}: ${e}`);
+          return `[Error generating context for ${targetPath}]`;
+        }
+      })();
+      asyncResolvers.set(id, promise);
+      return id;
     });
 
     env.addGlobal('read', (relativePath: string | string[]) => {
-      try {
-        if (Array.isArray(relativePath)) {
-          return relativePath
-            .map((p) => {
-              const resolvedPath = path.resolve(process.cwd(), p);
-              if (!existsSync(resolvedPath)) {
-                logger.debug(`[Read] File not found: ${resolvedPath}`);
-                return `[File not found: ${resolvedPath}]`;
-              }
-              return readFileSync(resolvedPath, 'utf-8');
-            })
-            .join('\n\n');
-        } else if (typeof relativePath === 'string' && relativePath.includes(',')) {
-          // Fallback in case Nunjucks interpolated it as a comma-separated string earlier
-          return relativePath
-            .split(',')
-            .map((p) => {
-              const resolvedPath = path.resolve(process.cwd(), p.trim());
-              if (!existsSync(resolvedPath)) {
-                logger.debug(`[Read] File not found: ${resolvedPath}`);
-                return `[File not found: ${resolvedPath}]`;
-              }
-              return readFileSync(resolvedPath, 'utf-8');
-            })
-            .join('\n\n');
-        }
+      const id = `__NEXICAL_ASYNC_READ_${resolverId++}__`;
+      const promise = (async () => {
+        try {
+          if (Array.isArray(relativePath)) {
+            const contents = await Promise.all(
+              relativePath.map(async (p) => {
+                const resolvedPath = path.resolve(process.cwd(), p);
+                if (!existsSync(resolvedPath)) {
+                  logger.debug(`[Read] File not found: ${resolvedPath}`);
+                  return `[File not found: ${resolvedPath}]`;
+                }
+                return await fs.readFile(resolvedPath, 'utf-8');
+              }),
+            );
+            return contents.join('\n\n');
+          } else if (typeof relativePath === 'string' && relativePath.includes(',')) {
+            const contents = await Promise.all(
+              relativePath.split(',').map(async (p) => {
+                const resolvedPath = path.resolve(process.cwd(), p.trim());
+                if (!existsSync(resolvedPath)) {
+                  logger.debug(`[Read] File not found: ${resolvedPath}`);
+                  return `[File not found: ${resolvedPath}]`;
+                }
+                return await fs.readFile(resolvedPath, 'utf-8');
+              }),
+            );
+            return contents.join('\n\n');
+          }
 
-        const resolvedPath = path.resolve(process.cwd(), relativePath);
-        if (!existsSync(resolvedPath)) {
-          logger.debug(`[Read] File not found: ${resolvedPath}`);
-          return `[File not found: ${resolvedPath}]`;
+          const resolvedPath = path.resolve(process.cwd(), relativePath as string);
+          if (!existsSync(resolvedPath)) {
+            logger.debug(`[Read] File not found: ${resolvedPath}`);
+            return `[File not found: ${resolvedPath}]`;
+          }
+          return await fs.readFile(resolvedPath, 'utf-8');
+        } catch {
+          logger.error(`[Read] Error reading file: ${relativePath}`);
+          return `[Error reading file ${relativePath}]`;
         }
-        return readFileSync(resolvedPath, 'utf-8');
-      } catch {
-        logger.error(`[Read] Error reading file: ${relativePath}`);
-        return `[Error reading file ${relativePath}]`;
-      }
+      })();
+      asyncResolvers.set(id, promise);
+      return id;
     });
 
     let templateContent: string;
@@ -152,11 +209,20 @@ export class PromptRunner {
 
     let renderedPrompt: string;
     try {
-      renderedPrompt = env.renderString(templateContent, {
-        ...argv,
-      });
+      renderedPrompt = env.renderString(templateContent, { ...argv });
     } catch (e) {
       throw new Error(`Template render error: ${e}`);
+    }
+
+    // Resolve placeholders
+    for (const [id, promise] of asyncResolvers.entries()) {
+      try {
+        const resolvedValue = await promise;
+        renderedPrompt = renderedPrompt.replace(id, resolvedValue);
+      } catch (e) {
+        logger.error(`[Render] Failed to resolve async variable ${id}: ${e}`);
+        renderedPrompt = renderedPrompt.replace(id, `[Error resolving ${id}]`);
+      }
     }
 
     const tempFile = path.join(os.tmpdir(), `.temp_prompt_${Date.now()}.md`);
@@ -225,7 +291,7 @@ export class PromptRunner {
     }
 
     if (finalCode !== 0) {
-      throw new Error(`Prompt execution failed with code ${finalCode}`);
+      throw new Error(`Prompt execution failed with code ${finalCode} `);
     }
   }
 

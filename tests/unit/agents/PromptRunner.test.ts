@@ -46,7 +46,10 @@ describe('PromptRunner', () => {
     vi.mocked(existsSync).mockReturnValue(true);
 
     // 2. Mock nunjucks
-    mockEnv.renderString.mockReturnValue('Hello World');
+    mockEnv.renderString.mockImplementation((tmpl, ctx, cb) => {
+      if (cb) cb(null, 'Hello World');
+      return 'Hello World';
+    });
 
     // 3. Mock spawn for gemini
     const mockChild = {
@@ -79,7 +82,10 @@ describe('PromptRunner', () => {
     vi.mocked(fs.access).mockResolvedValue(undefined);
     vi.mocked(fs.readFile).mockResolvedValue('template');
 
-    mockEnv.renderString.mockReturnValue('rendered');
+    mockEnv.renderString.mockImplementation((tmpl, ctx, cb) => {
+      if (cb) cb(null, 'rendered');
+      return 'rendered';
+    });
 
     // Mock first call as 429 error, second call as fatal error
     let callCount = 0;
@@ -114,7 +120,10 @@ describe('PromptRunner', () => {
     vi.mocked(fs.access).mockResolvedValue(undefined);
     vi.mocked(fs.readFile).mockResolvedValue('interactive template');
 
-    mockEnv.renderString.mockReturnValue('rendered');
+    mockEnv.renderString.mockImplementation((tmpl, ctx, cb) => {
+      if (cb) cb(null, 'rendered');
+      return 'rendered';
+    });
 
     // Success on first call
     vi.mocked(spawn).mockReturnValue({

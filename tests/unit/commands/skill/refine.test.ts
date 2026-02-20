@@ -15,6 +15,16 @@ vi.mock('../../../../src/core/Pipeline.js', async () => {
 });
 vi.mock('../../../../src/core/ProjectScanner.js');
 vi.mock('node:fs');
+export const mockSetupRun = vi.fn().mockResolvedValue(true);
+vi.mock('../../../../src/commands/skill/setup.js', () => {
+  return {
+    default: function MockSetupCommand() {
+      return {
+        run: mockSetupRun,
+      };
+    },
+  };
+});
 
 // Mock Initializer dynamic import
 vi.mock('../../../../src/core/Initializer.js', () => ({
@@ -72,7 +82,10 @@ describe('RefineCommand', () => {
     expect(hooks.onDriftDetected).toHaveBeenCalled();
     expect(Pipeline.stageInstructor).toHaveBeenCalled();
     expect(hooks.onSkillUpdated).toHaveBeenCalled();
-    expect(Pipeline.updateContextFiles).toHaveBeenCalled();
+
+    // SetupCommand mock verification
+    expect(mockSetupRun).toHaveBeenCalled();
+
     expect(command.success).toHaveBeenCalledWith(expect.stringContaining('Refinement complete'));
   });
 
