@@ -326,7 +326,7 @@ export class PromptRunner {
       logger.debug(`[Agent] Attempting with model: ${model}...`);
       const start = Date.now();
 
-      const child = spawn(`gemini --yolo --model ${model}`, {
+      const child = spawn(`gemini --yolo -p "" --model ${model}`, {
         shell: true,
         stdio: ['pipe', 'pipe', 'pipe'],
       });

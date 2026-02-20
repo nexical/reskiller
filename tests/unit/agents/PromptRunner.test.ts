@@ -73,7 +73,7 @@ describe('PromptRunner', () => {
       expect.objectContaining({ name: 'World' }),
     );
     expect(spawn).toHaveBeenCalledWith(
-      expect.stringContaining('gemini --yolo --model'),
+      expect.stringContaining('gemini --yolo -p "" --model'),
       expect.any(Object) as unknown,
     );
   });
