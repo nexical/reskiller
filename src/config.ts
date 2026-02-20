@@ -30,7 +30,7 @@ export type ReskillConfig = z.infer<typeof ReskillConfigSchema>;
 
 export const ReskillConfigOverridesSchema = ReskillConfigSchema.partial().extend({
   constitution: ReskillConfigSchema.shape.constitution.partial().optional(),
-  discovery: ReskillConfigSchema.shape.discovery.unwrap().partial().optional(),
+  discovery: ReskillConfigSchema.shape.discovery.removeDefault().partial().optional(),
   outputs: ReskillConfigSchema.shape.outputs.partial().optional(),
 });
 
