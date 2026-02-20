@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -75,6 +75,18 @@ export class PromptRunner {
 
     env.addGlobal('context', (targetPath: string) => {
       try {
+        if (!existsSync(targetPath)) {
+          logger.debug(`[Context] Path not found: ${targetPath}`);
+          return `[Path not found: ${targetPath}]`;
+        }
+
+        const stats = statSync(targetPath);
+        if (stats.isFile()) {
+          logger.debug(`[Context] Reading file directly at: ${targetPath}`);
+          const content = readFileSync(targetPath, 'utf-8');
+          return `<CODEBASE_CONTEXT path="${targetPath}">\n${content}\n</CODEBASE_CONTEXT>`;
+        }
+
         logger.debug(`[Context] Analyzing codebase at: ${targetPath}`);
         const output = execSync(
           `npx -y repomix --stdout --quiet --style xml --include "${targetPath}/**/*" --ignore "**/node_modules,**/dist"`,
@@ -82,16 +94,45 @@ export class PromptRunner {
         );
         return `<CODEBASE_CONTEXT path="${targetPath}">\n${output}\n</CODEBASE_CONTEXT>`;
       } catch {
-        logger.error(`[Context] Error running repomix on ${targetPath}`);
+        logger.error(`[Context] Error generating context for ${targetPath}`);
         return `[Error generating context for ${targetPath}]`;
       }
     });
 
-    env.addGlobal('read', (relativePath: string) => {
+    env.addGlobal('read', (relativePath: string | string[]) => {
       try {
+        if (Array.isArray(relativePath)) {
+          return relativePath
+            .map((p) => {
+              const resolvedPath = path.resolve(process.cwd(), p);
+              if (!existsSync(resolvedPath)) {
+                logger.debug(`[Read] File not found: ${resolvedPath}`);
+                return `[File not found: ${resolvedPath}]`;
+              }
+              return readFileSync(resolvedPath, 'utf-8');
+            })
+            .join('\n\n');
+        } else if (typeof relativePath === 'string' && relativePath.includes(',')) {
+          // Fallback in case Nunjucks interpolated it as a comma-separated string earlier
+          return relativePath
+            .split(',')
+            .map((p) => {
+              const resolvedPath = path.resolve(process.cwd(), p.trim());
+              if (!existsSync(resolvedPath)) {
+                logger.debug(`[Read] File not found: ${resolvedPath}`);
+                return `[File not found: ${resolvedPath}]`;
+              }
+              return readFileSync(resolvedPath, 'utf-8');
+            })
+            .join('\n\n');
+        }
+
         const resolvedPath = path.resolve(process.cwd(), relativePath);
-        const content = readFileSync(resolvedPath, 'utf-8');
-        return content;
+        if (!existsSync(resolvedPath)) {
+          logger.debug(`[Read] File not found: ${resolvedPath}`);
+          return `[File not found: ${resolvedPath}]`;
+        }
+        return readFileSync(resolvedPath, 'utf-8');
       } catch {
         logger.error(`[Read] Error reading file: ${relativePath}`);
         return `[Error reading file ${relativePath}]`;
