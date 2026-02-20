@@ -48,6 +48,18 @@ describe('ProjectScanner', () => {
     expect(projects[0].name).toBe('custom-name');
   });
 
+  it('should flatten scoped package names', async () => {
+    vi.mocked(fg).mockResolvedValue(['/mock/cwd/packages/a/.skills']);
+
+    vi.mocked(fs.existsSync).mockImplementation((p) => (p as string).endsWith('package.json'));
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({ name: '@modules/feature-flags' }));
+
+    const scanner = new ProjectScanner(mockConfig as unknown as ReskillConfig, mockCwd);
+    const projects = await scanner.scan();
+
+    expect(projects[0].name).toBe('modules-feature-flags');
+  });
+
   it('should fallback to dir name if package.json has no name', async () => {
     vi.mocked(fg).mockResolvedValue(['/mock/cwd/packages/a/.skills']);
     vi.mocked(fs.existsSync).mockReturnValue(true);

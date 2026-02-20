@@ -104,7 +104,9 @@ export class ProjectScanner {
       try {
         const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
         if (pkg.name) {
-          name = pkg.name;
+          name = pkg.name.startsWith('@')
+            ? pkg.name.slice(1).replace(/\//g, '-')
+            : pkg.name.replace(/\//g, '-');
         }
       } catch {
         logger.warn(
