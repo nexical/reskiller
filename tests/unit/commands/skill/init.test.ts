@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import InitCommand from '../../../src/commands/init.js';
+import InitCommand from '../../../../src/commands/skill/init.js';
 import { CLI } from '@nexical/cli-core';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as yaml from 'yaml';
-import { logger } from '../../../src/core/Logger.js';
+import { logger } from '../../../../src/core/Logger.js';
 
 vi.mock('node:fs');
-vi.mock('../../../src/core/Logger.js', () => ({
+vi.mock('../../../../src/core/Logger.js', () => ({
   logger: {
     setCommand: vi.fn(),
     setDebug: vi.fn(),

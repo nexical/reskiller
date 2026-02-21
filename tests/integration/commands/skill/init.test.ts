@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { TEST_TMP_DIR } from '../setup.js';
+import { TEST_TMP_DIR } from '../../setup.js';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import { CLI } from '@nexical/cli-core';
@@ -7,8 +7,8 @@ import * as yaml from 'yaml';
 
 describe('InitCommand Integration', () => {
   let projectDir: string;
-  let InitCommand: typeof import('../../../src/commands/init.js').default;
-  let command: InstanceType<typeof import('../../../src/commands/init.js').default>;
+  let InitCommand: typeof import('../../../../src/commands/skill/init.js').default;
+  let command: InstanceType<typeof import('../../../../src/commands/skill/init.js').default>;
 
   beforeEach(async () => {
     vi.resetModules();
@@ -18,7 +18,7 @@ describe('InitCommand Integration', () => {
     projectDir = path.join(TEST_TMP_DIR, projectName);
     fs.mkdirSync(projectDir, { recursive: true });
 
-    const mod = await import('../../../src/commands/init.js');
+    const mod = await import('../../../../src/commands/skill/init.js');
     InitCommand = mod.default;
 
     const mockCli = {
@@ -49,6 +49,8 @@ describe('InitCommand Integration', () => {
     const content = fs.readFileSync(reskillerYamlPath, 'utf-8');
     const config = yaml.parse(content);
     expect(config.constitution.architecture).toBe('.reskill/architecture.md');
+    expect(config.constitution.patterns).toEqual([]);
+    expect(config.discovery.ignore).toContain('coverage');
     expect(command.success).toHaveBeenCalledWith(expect.stringContaining('Created reskiller.yaml'));
   });
 
@@ -95,7 +97,8 @@ describe('InitCommand Integration', () => {
     const content = fs.readFileSync(reskillerYamlPath, 'utf-8');
     const config = yaml.parse(content);
     expect(config.constitution.architecture).toBe('.reskill/architecture.md');
-    expect(config.discovery).toBeUndefined(); // Scoped config should be partial
+    expect(config.constitution.patterns).toEqual([]);
+    expect(config.discovery.ignore).toContain('coverage'); // Scoped config should now have partial discovery
 
     expect(command.success).toHaveBeenCalledWith(
       expect.stringContaining(`Created ${path.join(scope, 'reskiller.yaml')}`),

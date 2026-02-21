@@ -1,6 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { getReskillConfig, parseReskillerConfig, mergeConfig } from '../../src/config.js';
 import type { ReskillConfig, ReskillConfigOverrides } from '../../src/config.js';
+import * as fs from 'node:fs';
+import { vi } from 'vitest';
+
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof fs>();
+  return {
+    ...actual,
+    existsSync: vi.fn(actual.existsSync),
+  };
+});
 
 describe('config', () => {
   it('should extract valid configuration from global config', () => {
@@ -25,6 +35,7 @@ describe('config', () => {
   });
 
   it('should throw if reskill key is missing', () => {
+    vi.mocked(fs.existsSync).mockReturnValueOnce(false);
     const globalConfig = {};
     expect(() => getReskillConfig(globalConfig)).toThrow(
       'Reskill configuration not found in nexical.yaml',

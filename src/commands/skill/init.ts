@@ -2,7 +2,7 @@ import { BaseCommand } from '@nexical/cli-core';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as yaml from 'yaml';
-import { logger } from '../core/Logger.js';
+import { logger } from '../../core/Logger.js';
 
 export default class InitCommand extends BaseCommand {
   static description = 'Initializes reskill configurations';
@@ -25,10 +25,11 @@ export default class InitCommand extends BaseCommand {
     const defaultConfig = {
       constitution: {
         architecture: '.reskill/architecture.md',
+        patterns: [],
       },
       discovery: {
         root: '.',
-        ignore: ['node_modules', 'dist', '.git', '.reskill'],
+        ignore: ['node_modules', 'dist', 'coverage', '.git', '.reskill'],
         depth: 5,
       },
       outputs: {
@@ -58,6 +59,10 @@ export default class InitCommand extends BaseCommand {
       const overrideConfig = {
         constitution: {
           architecture: '.reskill/architecture.md',
+          patterns: [],
+        },
+        discovery: {
+          ignore: ['node_modules', 'dist', 'coverage', '.git'],
         },
       };
 
