@@ -1,0 +1,9 @@
+constitution:
+  architecture: ARCHITECTURE.md
+  patterns: []
+discovery:
+  ignore:
+    - node_modules
+    - dist
+    - coverage
+    - .git
