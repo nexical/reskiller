@@ -30,6 +30,7 @@ export async function stageAuditor(
     pattern_path: target.patternPath,
     output_file: outputFile,
     constitution: finalConfig.constitution, // Use finalConfig
+    aiConfig: finalConfig.ai,
     edit_mode: edit,
     cwd,
   });
@@ -54,6 +55,7 @@ export async function stageCritic(
     skill_dir: target.skillPath,
     output_file: outputFile,
     constitution: finalConfig.constitution,
+    aiConfig: finalConfig.ai,
     edit_mode: edit,
     cwd,
   });
@@ -77,6 +79,7 @@ export async function stageInstructor(
     target_file: path.join(target.skillPath, 'SKILL.md'),
     skill_dir: target.skillPath,
     constitution: finalConfig.constitution,
+    aiConfig: finalConfig.ai,
     edit_mode: edit,
     cwd,
     gauntlet_report_file: gauntletReportFile,

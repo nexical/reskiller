@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { AgentRunner } from '../agents/AgentRunner.js';
 import { Project } from './ProjectScanner.js';
+import { ReskillConfig } from '../config.js';
 import { logger } from './Logger.js';
 
 interface ScannedProject {
@@ -11,19 +12,14 @@ interface ScannedProject {
 }
 
 export class Explorer {
-  private constitution: { architecture: string; patterns?: string | string[] };
+  private config: ReskillConfig;
   private projects: Project[];
   private tmpDir: string;
   private edit: boolean;
 
-  constructor(
-    projects: Project[],
-    constitution: { architecture: string; patterns?: string | string[] },
-    tmpDir: string,
-    edit: boolean = false,
-  ) {
+  constructor(projects: Project[], config: ReskillConfig, tmpDir: string, edit: boolean = false) {
     this.projects = projects;
-    this.constitution = constitution;
+    this.config = config;
     this.tmpDir = tmpDir;
     this.edit = edit;
   }
@@ -41,7 +37,8 @@ export class Explorer {
 
     await AgentRunner.run('Explorer', 'agents/explorer.md', {
       modules_list: modulesFile,
-      constitution: this.constitution,
+      constitution: this.config.constitution,
+      aiConfig: this.config.ai,
       output_file: outputFile,
       edit_mode: this.edit,
       recommendations_file: recommendationsFile,

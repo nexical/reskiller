@@ -124,11 +124,11 @@ export default class LearnCommand extends BaseCommand {
     // Let's just execute `SetupCommand` at the end!
     const recommendationsFile = path.resolve(root, '.reskill', 'recommendations.md');
 
-    const explorer = new Explorer(projects, config.constitution, TMP_DIR, options.edit);
+    const explorer = new Explorer(projects, config, TMP_DIR, options.edit);
     const knowledgeGraph = await explorer.discover(options.edit ? recommendationsFile : undefined);
 
     // 2. Strategize
-    const architect = new Architect(bundleDir, TMP_DIR, options.edit);
+    const architect = new Architect(bundleDir, TMP_DIR, config, options.edit);
     const plan = await architect.strategize(
       knowledgeGraph,
       options.edit ? recommendationsFile : undefined,
@@ -236,8 +236,14 @@ export default class LearnCommand extends BaseCommand {
 
               verificationSuccess = true;
               logger.success(`✅ Skill ${skillName} passed verification!`);
-            } catch (error: any) {
-              const output = error.stdout?.toString() || error.stderr?.toString() || error.message;
+            } catch (error: unknown) {
+              const err = error as {
+                stdout?: { toString(): string };
+                stderr?: { toString(): string };
+                message?: string;
+              };
+              const output =
+                err.stdout?.toString() || err.stderr?.toString() || err.message || String(error);
               logger.warn(`❌ Verification failed for ${skillName}:\n${output}`);
 
               gauntletReportPath = path.join(
@@ -273,6 +279,7 @@ export default class LearnCommand extends BaseCommand {
         skill_plan_file: path.join(TMP_DIR, 'skill-plan.json'),
         knowledge_graph_file: path.join(TMP_DIR, 'knowledge-graph.json'),
         constitution: config.constitution,
+        aiConfig: config.ai,
         output_file: recommendationsFile,
         cwd: root,
       });

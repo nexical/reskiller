@@ -27,6 +27,7 @@
     ]
   },
   "dependencies": {
+    "@nexical/ai": "^0.1.0",
     "@nexical/cli-core": "^0.1.12",
     "chalk": "^5.6.2",
     "chokidar": "^5.0.0",

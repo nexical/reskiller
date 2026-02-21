@@ -23,6 +23,12 @@ export const ReskillConfigSchema = z.object({
     contextFiles: z.array(z.string()),
     symlinks: z.array(z.string()).optional().default([]),
   }),
+  ai: z
+    .object({
+      provider: z.string().default('gemini-cli'),
+      commandTemplate: z.string().optional(),
+    })
+    .optional(),
 });
 
 export type ReskillConfig = z.infer<typeof ReskillConfigSchema>;
@@ -31,6 +37,7 @@ export const ReskillConfigOverridesSchema = ReskillConfigSchema.partial().extend
   constitution: ReskillConfigSchema.shape.constitution.partial().optional(),
   discovery: ReskillConfigSchema.shape.discovery.removeDefault().partial().optional(),
   outputs: ReskillConfigSchema.shape.outputs.partial().optional(),
+  ai: ReskillConfigSchema.shape.ai.unwrap().partial().optional(),
 });
 
 export type ReskillConfigOverrides = z.infer<typeof ReskillConfigOverridesSchema>;
@@ -95,6 +102,10 @@ export function mergeConfig(
       ...global.outputs,
       ...(overrides.outputs || {}),
     } as ReskillConfig['outputs'],
+    ai: {
+      ...global.ai,
+      ...(overrides.ai || {}),
+    } as ReskillConfig['ai'],
   };
 
   return merged;
@@ -122,6 +133,10 @@ export function mergePartialConfigs(
       ...(base.outputs || {}),
       ...(overrides.outputs || {}),
     } as ReskillConfigOverrides['outputs'],
+    ai: {
+      ...(base.ai || {}),
+      ...(overrides.ai || {}),
+    } as ReskillConfigOverrides['ai'],
   };
   return merged;
 }

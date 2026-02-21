@@ -1,27 +1,21 @@
 import { existsSync, statSync } from 'node:fs';
+import { AiClientFactory, AiClientConfig } from '@nexical/ai';
 import fs from 'node:fs/promises';
 import { pack } from 'repomix';
 import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import nunjucks from 'nunjucks';
-import { spawn } from 'node:child_process';
 import readline from 'node:readline';
 import { logger } from '../core/Logger.js';
-import chalk from 'chalk';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_PROMPTS_DIR = path.join(__dirname, '../../prompts');
 
-export interface GeminiResult {
-  code: number;
-  shouldRetry: boolean;
-  output: string;
-}
-
 export interface PromptOptions {
   promptName: string;
   models?: string;
+  aiConfig?: AiClientConfig;
   interactive?: boolean;
   [key: string]: unknown;
 }
@@ -31,6 +25,7 @@ export class PromptRunner {
     const {
       promptName,
       models: modelsArg = 'gemini-3-pro-preview,gemini-3-flash-preview',
+      aiConfig,
       interactive = false,
       cwd = process.cwd(),
       ...rest
@@ -41,12 +36,9 @@ export class PromptRunner {
     const fileName = promptName.endsWith('.md') ? promptName : `${promptName}.md`;
 
     // Normalize constitution.patterns to always be an array if it's defined
-    if (
-      argv.constitution &&
-      (argv.constitution as any).patterns &&
-      !Array.isArray((argv.constitution as any).patterns)
-    ) {
-      (argv.constitution as any).patterns = [(argv.constitution as any).patterns];
+    const constitution = argv.constitution as Record<string, unknown> | undefined;
+    if (constitution?.patterns && !Array.isArray(constitution.patterns)) {
+      constitution.patterns = [constitution.patterns];
     }
 
     // 1. Check User Override
@@ -271,9 +263,10 @@ export class PromptRunner {
     while (true) {
       let success = false;
       let lastOutput = '';
+      const aiClient = AiClientFactory.create(aiConfig);
 
       for (const model of models) {
-        const result = await this.runGemini(model, currentPrompt);
+        const result = await aiClient.run(model, currentPrompt);
 
         if (result.code === 0) {
           success = true;
@@ -322,61 +315,6 @@ export class PromptRunner {
     if (finalCode !== 0) {
       throw new Error(`Prompt execution failed with code ${finalCode} `);
     }
-  }
-
-  private static runGemini(model: string, input: string): Promise<GeminiResult> {
-    return new Promise((resolve) => {
-      logger.debug(`[Agent] Attempting with model: ${model}...`);
-      const start = Date.now();
-
-      const child = spawn(`gemini --yolo -p "" --model ${model}`, {
-        shell: true,
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-
-      let stdoutData = '';
-      let stderrData = '';
-
-      child.stdout?.on('data', (data) => {
-        const chunk = data.toString();
-        process.stdout.write(chalk.yellow(chunk));
-        stdoutData += chunk;
-      });
-
-      child.stderr?.on('data', (data) => {
-        const chunk = data.toString();
-        stderrData += chunk;
-      });
-
-      child.stdin.write(input);
-      child.stdin.end();
-
-      child.on('close', (code) => {
-        const duration = Date.now() - start;
-        const exitCode = code ?? 1;
-        const isExhausted =
-          stderrData.includes('429') ||
-          stderrData.includes('exhausted your capacity') ||
-          stderrData.includes('ResourceExhausted');
-
-        if (exitCode !== 0 && isExhausted) {
-          logger.warn(`[Agent] Model ${model} exhausted (429). Duration: ${duration}ms`);
-          resolve({ code: exitCode, shouldRetry: true, output: stdoutData });
-        } else {
-          if (exitCode !== 0 && stderrData) {
-            process.stderr.write(stderrData);
-          }
-          resolve({ code: exitCode, shouldRetry: false, output: stdoutData });
-        }
-      });
-
-      child.on('error', (err) => {
-        logger.error(
-          `[Agent] Failed to spawn Gemini (${model}): ${err instanceof Error ? err.message : String(err)}`,
-        );
-        resolve({ code: 1, shouldRetry: false, output: '' });
-      });
-    });
   }
 
   private static askUser(): Promise<string> {

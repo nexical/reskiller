@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PromptRunner } from '../../../src/agents/PromptRunner.js';
 import fs from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { spawn } from 'node:child_process';
+import { AiClientFactory } from '@nexical/ai';
 import readline from 'node:readline';
 
 const { mockEnv } = vi.hoisted(() => {
@@ -16,7 +16,7 @@ const { mockEnv } = vi.hoisted(() => {
 
 vi.mock('node:fs/promises');
 vi.mock('node:fs');
-vi.mock('node:child_process');
+vi.mock('@nexical/ai');
 vi.mock('node:readline');
 
 vi.mock('nunjucks', () => {
@@ -51,16 +51,15 @@ describe('PromptRunner', () => {
       return 'Hello World';
     });
 
-    // 3. Mock spawn for gemini
-    const mockChild = {
-      stdout: { on: vi.fn() },
-      stderr: { on: vi.fn() },
-      stdin: { write: vi.fn(), end: vi.fn() },
-      on: vi.fn((event, callback) => {
-        if (event === 'close') callback(0);
-      }),
-    };
-    vi.mocked(spawn).mockReturnValue(mockChild as unknown as ReturnType<typeof spawn>);
+    // 3. Mock AiClientFactory
+    const mockRun = vi.fn().mockResolvedValue({
+      code: 0,
+      shouldRetry: false,
+      output: 'mocked output',
+    });
+    vi.mocked(AiClientFactory.create).mockReturnValue({
+      run: mockRun,
+    } as unknown as ReturnType<typeof AiClientFactory.create>);
 
     await PromptRunner.run({
       promptName: 'test-prompt',
@@ -72,10 +71,8 @@ describe('PromptRunner', () => {
       'Hello {{ name }}',
       expect.objectContaining({ name: 'World' }),
     );
-    expect(spawn).toHaveBeenCalledWith(
-      expect.stringContaining('gemini --yolo -p "" --model'),
-      expect.any(Object) as unknown,
-    );
+    expect(AiClientFactory.create).toHaveBeenCalled();
+    expect(mockRun).toHaveBeenCalledWith('gemini-3-pro-preview', expect.any(String));
   });
 
   it('should fail if gemini fails after model rotation', async () => {
@@ -89,22 +86,17 @@ describe('PromptRunner', () => {
 
     // Mock first call as 429 error, second call as fatal error
     let callCount = 0;
-    vi.mocked(spawn).mockImplementation(() => {
+    const mockRun = vi.fn().mockImplementation(async () => {
       callCount++;
-      const isRetryable = callCount === 1;
-      return {
-        stdout: { on: vi.fn() },
-        stderr: {
-          on: vi.fn((event, cb) => {
-            if (event === 'data' && isRetryable) cb(Buffer.from('ResourceExhausted (429)'));
-          }),
-        },
-        stdin: { write: vi.fn(), end: vi.fn() },
-        on: vi.fn((event, callback) => {
-          if (event === 'close') callback(1);
-        }),
-      } as unknown as ReturnType<typeof spawn>;
+      if (callCount === 1) {
+        return { code: 1, shouldRetry: true, output: '' };
+      }
+      return { code: 1, shouldRetry: false, output: '' };
     });
+
+    vi.mocked(AiClientFactory.create).mockReturnValue({
+      run: mockRun,
+    } as unknown as ReturnType<typeof AiClientFactory.create>);
 
     await expect(
       PromptRunner.run({
@@ -113,7 +105,7 @@ describe('PromptRunner', () => {
       }),
     ).rejects.toThrow('Prompt execution failed with code 1');
 
-    expect(spawn).toHaveBeenCalledTimes(2); // Attempted both models
+    expect(mockRun).toHaveBeenCalledTimes(2); // Attempted both models
   });
 
   it('should support interactive mode', async () => {
@@ -126,14 +118,14 @@ describe('PromptRunner', () => {
     });
 
     // Success on first call
-    vi.mocked(spawn).mockReturnValue({
-      stdout: { on: vi.fn() },
-      stderr: { on: vi.fn() },
-      stdin: { write: vi.fn(), end: vi.fn() },
-      on: vi.fn((event, callback) => {
-        if (event === 'close') callback(0);
-      }),
-    } as unknown as ReturnType<typeof spawn>);
+    const mockRun = vi.fn().mockResolvedValue({
+      code: 0,
+      shouldRetry: false,
+      output: 'mocked output',
+    });
+    vi.mocked(AiClientFactory.create).mockReturnValue({
+      run: mockRun,
+    } as unknown as ReturnType<typeof AiClientFactory.create>);
 
     // Mock readline for "exit"
     const mockRl = {

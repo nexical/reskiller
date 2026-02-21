@@ -49,7 +49,7 @@ describe('Pipeline', () => {
     const target = { name: 'Test Skill', skillPath: '/skill/path', patternPath: '/truth/path' };
 
     it('stageAuditor should call AgentRunner', async () => {
-      const result = await stageAuditor(target, mockConfig as unknown as ReskillConfig);
+      const result = await stageAuditor(target, mockConfig as unknown as ReskillConfig, mockCwd);
       expect(AgentRunner.run).toHaveBeenCalledWith(
         'Auditor',
         'agents/auditor.md',
@@ -59,7 +59,7 @@ describe('Pipeline', () => {
     });
 
     it('stageCritic should call AgentRunner', async () => {
-      await stageCritic(target, 'canon.json', mockConfig as unknown as ReskillConfig);
+      await stageCritic(target, 'canon.json', mockConfig as unknown as ReskillConfig, mockCwd);
       expect(AgentRunner.run).toHaveBeenCalledWith(
         'Critic',
         'agents/critic.md',
@@ -73,6 +73,7 @@ describe('Pipeline', () => {
         'canon.json',
         'drift.md',
         mockConfig as unknown as ReskillConfig,
+        mockCwd,
       );
       expect(AgentRunner.run).toHaveBeenCalledWith(
         'Instructor',

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import WatchCommand from '../../../../src/commands/skill/watch.js';
 import * as configMod from '../../../../src/config.js';
-import chokidar from 'chokidar';
+import chokidar, { type FSWatcher } from 'chokidar';
 import { ProjectScanner } from '../../../../src/core/ProjectScanner.js';
 import { CLI } from '@nexical/cli-core';
 import { logger } from '../../../../src/core/Logger.js';
@@ -58,7 +58,7 @@ describe('WatchCommand', () => {
 
   it('should start watcher', async () => {
     const onMock = vi.fn();
-    vi.mocked(chokidar.watch).mockReturnValue({ on: onMock } as unknown as chokidar.FSWatcher);
+    vi.mocked(chokidar.watch).mockReturnValue({ on: onMock } as unknown as FSWatcher);
 
     await command.run();
 
@@ -99,9 +99,9 @@ describe('WatchCommand', () => {
         if (event === 'change') {
           changeCallback = cb;
         }
-        return {} as unknown as chokidar.FSWatcher;
+        return {} as unknown as FSWatcher;
       }),
-    } as unknown as chokidar.FSWatcher);
+    } as unknown as FSWatcher);
 
     await command.run();
 

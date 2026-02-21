@@ -2,17 +2,20 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { AgentRunner } from '../agents/AgentRunner.js';
 import { SkillPlan } from '../types.js';
+import { ReskillConfig } from '../config.js';
 import { logger } from './Logger.js';
 
 export class Architect {
   private bundleDir: string;
   private tmpDir: string;
   private edit: boolean;
+  private config: ReskillConfig;
 
-  constructor(bundleDir: string, tmpDir: string, edit: boolean = false) {
+  constructor(bundleDir: string, tmpDir: string, config: ReskillConfig, edit: boolean = false) {
     this.bundleDir = bundleDir;
     this.tmpDir = tmpDir;
     this.edit = edit;
+    this.config = config;
   }
 
   async strategize(knowledgeGraphPath: string, recommendationsFile?: string): Promise<SkillPlan> {
@@ -28,6 +31,8 @@ export class Architect {
       knowledge_graph_file: knowledgeGraphPath,
       skills_list: skillsFile,
       output_file: outputFile,
+      aiConfig: this.config.ai,
+      constitution: this.config.constitution,
       edit_mode: this.edit,
       recommendations_file: recommendationsFile,
     });

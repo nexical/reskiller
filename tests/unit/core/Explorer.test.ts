@@ -10,7 +10,9 @@ describe('Explorer', () => {
     { name: 'core', path: '/mock/core', skillDir: '/mock/core/.skills' },
     { name: 'module-a', path: '/mock/module-a', skillDir: '/mock/module-a/.skills' },
   ];
-  const mockConstitution = { architecture: 'Test Arch', patterns: 'Test Patterns' };
+  const mockConfig = {
+    constitution: { architecture: 'Test Arch', patterns: 'Test Patterns' },
+  } as unknown as import('../../../src/config.js').ReskillConfig;
   const mockTmpDir = '/mock/tmp';
 
   beforeEach(() => {
@@ -21,14 +23,14 @@ describe('Explorer', () => {
   });
 
   it('should instantiate correctly', () => {
-    const explorer = new Explorer(mockProjects, mockConstitution, mockTmpDir);
+    const explorer = new Explorer(mockProjects, mockConfig, mockTmpDir);
     expect(explorer).toBeDefined();
   });
 
   it('should handle missing project directories', async () => {
     const explorer = new Explorer(
       [{ name: 'missing', path: '/missing/path', skillDir: '/missing/path/.skills' }],
-      mockConstitution,
+      mockConfig,
       mockTmpDir,
     );
 
@@ -45,7 +47,7 @@ describe('Explorer', () => {
   it('should recursively list files ignoring excludes', async () => {
     const explorer = new Explorer(
       [{ name: 'core', path: '/mock/core', skillDir: '/mock/core/.skills' }],
-      mockConstitution,
+      mockConfig,
       mockTmpDir,
     );
 
