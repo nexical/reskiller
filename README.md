@@ -1,18 +1,34 @@
-# Reskill: The Agentic Learning System
+# @nexical/reskill
 
-Reskill is a framework for creating, evolving, and refining "Skills" (system prompts, context rules, and tools) for AI Agents within the Nexical ecosystem.
+Reskill is an Adaptive Learning System for the Nexus Ecosystem, designed for creating, evolving, and refining "Skills" (system prompts, context rules, and templates) for AI Agents.
 
-It treats skills as software artifacts that can be:
+It treats architecture and best practices as **living software artifacts** that can be:
 
 1.  **Discovered**: Scanned from your codebase (`.skills` directories).
-2.  **Learned**: Improved based on architectural "Patterns" (truth) implementation using an Architect AI.
-3.  **Distributed**: Symlinked to consumption points (VS Code, Cursor, GitHub Copilot).
+2.  **Learned**: Evaluated and updated based on architectural "Patterns" (Truth) in your codebase via an Architect AI.
+3.  **Distributed**: Bundled and symlinked to consumption points (VS Code, Cursor, GitHub Copilot).
 
-## Configuration
+---
+
+## 🏗️ Architecture Overview
+
+Reskill follows a **Core, Shell & Registry** architecture.
+
+- **Core (`src/core/`)**: The immutable logic driving the cyclical **Learning Loop** (`Explore -> Strategize -> Execute`).
+- **Shell (`src/commands/`)**: The CLI interface via `@nexical/cli-core` exposing `nexical skill learn` and `nexical skill watch`.
+- **Registry (`.reskill/skills/`)**: The output destination where generated skills are bundled and exposed.
+
+It relies on the `@nexical/ai` package for an abstract LLM interaction capability, supporting seamless model rotation (e.g. `gemini-3-pro-preview` falling back to `gemini-3-flash-preview`) and robust context generation via `repomix`.
+
+> **Note:** For a comprehensive overview of the components, pipelines, and data flow, please see the [Architecture & Specification Guide](./ARCHITECTURE.md).
+
+---
+
+## ⚙️ Configuration
 
 Reskill is configured through the `nexical.yaml` file in your project root, under the `reskill` key.
 
-### Schema
+### Schema Example
 
 ```yaml
 reskill:
@@ -27,45 +43,49 @@ reskill:
     ignore: # Directories to ignore
       - 'node_modules'
       - 'dist'
-      - '.git'
     depth: 5 # Max recursion depth
 
   # Output settings for context injection and symlinking
   outputs:
     # Files to concatenate into a global context (e.g., GEMINI.md)
     contextFiles:
-      - 'AGENTS.md'
       - 'GEMINI.md'
-      - 'CLAUDE.md'
+      - '.cursorrules'
 
     # Symlinks to create pointing to the generated skills (bundle)
     symlinks:
       - .agent/skills
       - .gemini/skills
-      - .claude/skills
 ```
 
-## Usage
+---
 
-Reskill automatically initializes its environment on the first run of any command. You do not need to run a manual setup.
+## 🚀 Usage
 
-- **Global Prompts**: Stored in `.reskiller/prompts`. You can customize these files.
-- **Skills**: Discovered from `.skills` directories across your projects and bundled in `.reskill/skills`.
+Reskill automatically initializes its environment (scaffolds directories and copies prompts) on the first execution of any command.
 
-### Commands
+### `nexical skill learn`
 
-#### `nexical skill learn`
+Runs the **full learning loop** (Explorer -> Architect -> Pipeline).
 
-Scans your projects for `.skills` directories, bundles them, and runs the Learning Pipeline to create or update skills based on your code's real-world patterns and constitution.
+- Scans your projects for `.skills` directories, bundles them, and runs the multi-stage AI Pipeline to audit and update skills based on your code's real-world patterns.
+- Best for CI/CD pipelines or nightly builds.
 
-#### `nexical skill watch` (Pro)
+```bash
+nexical skill learn
+```
 
-Watches your project for file changes and incrementally updates relevant skills.
+### `nexical skill watch` (Pro)
 
-## Architecture
+Runs as a daemon, watching your project workspace for file changes.
 
-Reskill follows a "Core & Shell" architecture:
+- Incrementally triggers drift detection when core files change and seamlessly rewrites relevant skills on-the-fly.
 
-- **Core**: The immutable logic for pipelines, agents, and configuration.
-- **Shell**: The `nexical` CLI that hosts the commands.
-- **Registry**: The collection of skills themselves.
+```bash
+nexical skill watch
+```
+
+## 🧩 Extension
+
+Reskill is fully extensible through its hooks system and **Prompt Overrides**:
+You can map specific AI personas (Auditor, Critic, Instructor) to customized system prompts located in `.agent/prompts/agents/`.
