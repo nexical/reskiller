@@ -89,3 +89,17 @@ nexical skill watch
 
 Reskill is fully extensible through its hooks system and **Prompt Overrides**:
 You can map specific AI personas (Auditor, Critic, Instructor) to customized system prompts located in `.agent/prompts/agents/`.
+
+---
+
+## 👨‍💻 Development
+
+### Agent Implementation
+
+All agents within this package must adhere to the **AgentRunner** pattern.
+
+- **Static Service**: Agents are stateless classes with a `static async run()` method.
+- **Error Handling**: Must use the centralized `logger` and wrap logic in `try/catch`.
+- **Imports**: Must use `.js` extensions for local imports.
+
+For AI assistance, use the `reskill-implement-agent-runner` skill.
