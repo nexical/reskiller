@@ -38,7 +38,7 @@ describe('Pipeline', () => {
   describe('ensureTmpDir', () => {
     it('should create tmp dir if not exists', () => {
       vi.mocked(fs.existsSync).mockReturnValue(false);
-      ensureTmpDir();
+      ensureTmpDir(mockCwd);
       expect(fs.mkdirSync).toHaveBeenCalledWith(expect.stringContaining('.agent/tmp/reskill'), {
         recursive: true,
       });

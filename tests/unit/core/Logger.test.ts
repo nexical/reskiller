@@ -25,25 +25,27 @@ describe('Logger', () => {
   });
 
   it('should log to console when no command is set', () => {
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     logger.info('info');
-    expect(logSpy).toHaveBeenCalledWith(expect.any(String), 'info');
+    expect(infoSpy).toHaveBeenCalledWith(expect.any(String), 'info');
 
     logger.success('success');
-    expect(logSpy).toHaveBeenCalledWith(expect.any(String), 'success');
+    expect(infoSpy).toHaveBeenCalledWith(expect.any(String), 'success');
 
     logger.warn('warn');
-    expect(logSpy).toHaveBeenCalledWith(expect.any(String), 'warn');
+    expect(warnSpy).toHaveBeenCalledWith(expect.any(String), 'warn');
 
     logger.error('error');
     expect(errorSpy).toHaveBeenCalledWith(expect.any(String), 'error');
 
     logger.notice('notice');
-    expect(logSpy).toHaveBeenCalledWith(expect.any(String), 'notice');
+    expect(infoSpy).toHaveBeenCalledWith(expect.any(String), 'notice');
 
-    logSpy.mockRestore();
+    infoSpy.mockRestore();
+    warnSpy.mockRestore();
     errorSpy.mockRestore();
   });
 
@@ -67,27 +69,27 @@ describe('Logger', () => {
   });
 
   it('should log debug messages only when debug is enabled', () => {
-    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
     logger.debug('debug hidden');
-    expect(debugSpy).not.toHaveBeenCalled();
+    expect(infoSpy).not.toHaveBeenCalled();
 
     logger.setDebug(true);
     logger.debug('debug message');
-    expect(debugSpy).toHaveBeenCalledWith(expect.any(String), 'debug message', ...[]);
+    expect(infoSpy).toHaveBeenCalledWith(expect.any(String), 'debug message', ...[]);
 
-    debugSpy.mockRestore();
+    infoSpy.mockRestore();
   });
 
   it('should fallback to console for notice if command does not support it', () => {
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
     const incompleteCommand = { info: vi.fn() };
     logger.setCommand(incompleteCommand as unknown as BaseCommand);
 
     logger.notice('notice fallback');
-    expect(logSpy).toHaveBeenCalledWith(expect.any(String), 'notice fallback');
+    expect(infoSpy).toHaveBeenCalledWith(expect.any(String), 'notice fallback');
 
-    logSpy.mockRestore();
+    infoSpy.mockRestore();
   });
 
   it('should exit process on error when not in test env', () => {

@@ -5,14 +5,18 @@ import { Architect } from '../../core/Architect.js';
 import { ProjectScanner } from '../../core/ProjectScanner.js';
 import { Bundler } from '../../core/Bundler.js';
 import { hooks } from '../../core/Hooks.js';
-import { ensureTmpDir, stageAuditor, stageCritic, stageInstructor } from '../../core/Pipeline.js';
+import {
+  ensureTmpDir,
+  getTmpDir,
+  stageAuditor,
+  stageCritic,
+  stageInstructor,
+} from '../../core/Pipeline.js';
 import { Target } from '../../types.js';
 import { logger } from '../../core/Logger.js';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import { execSync } from 'node:child_process';
-
-const TMP_DIR = '.agent/tmp/reskill';
 
 export default class LearnCommand extends BaseCommand {
   static description = 'Full cycle: Explore -> Strategize -> Execute';
@@ -46,8 +50,6 @@ export default class LearnCommand extends BaseCommand {
       return;
     }
 
-    ensureTmpDir();
-
     const root = this.projectRoot || process.cwd();
 
     // Resolve scope directory if provided
@@ -61,14 +63,15 @@ export default class LearnCommand extends BaseCommand {
       }
     }
 
+    const tmpDir = getTmpDir(scope || root);
+    ensureTmpDir(scope || root);
+
     // 0. Discovery & Bundling
-    logger.info('🔭 Discovering projects and bundling skills globally...');
+    logger.info('🔭 Discovering projects and bundling skills in scope...');
     const projectScanner = new ProjectScanner(config, root);
 
-    // Always bundle the entire project to ensure the skill integration context is complete
-    const allProjects = await projectScanner.scan();
-    // Scope limits what we explore and strategize on
-    const projects = scope ? await projectScanner.scan(scope) : allProjects;
+    // Only inspect projects that are within the requested scope
+    const projects = await projectScanner.scan(scope);
 
     logger.info(`✅ Found ${projects.length} target projects${scope ? ' in scope' : ''}:`);
     for (const p of projects) {
@@ -80,7 +83,7 @@ export default class LearnCommand extends BaseCommand {
       string,
       { path: string; overrides?: ReskillConfigOverrides }
     >();
-    for (const p of allProjects) {
+    for (const p of projects) {
       if (fs.existsSync(p.skillDir)) {
         try {
           const skillsInProject = fs.readdirSync(p.skillDir, { withFileTypes: true });
@@ -101,7 +104,7 @@ export default class LearnCommand extends BaseCommand {
     }
 
     const bundler = new Bundler(config, root);
-    await bundler.bundle(allProjects);
+    await bundler.bundle(projects);
     const bundleDir = bundler.getBundleDir();
 
     // 1. Explore
@@ -124,11 +127,11 @@ export default class LearnCommand extends BaseCommand {
     // Let's just execute `SetupCommand` at the end!
     const recommendationsFile = path.resolve(root, '.reskill', 'recommendations.md');
 
-    const explorer = new Explorer(projects, config, TMP_DIR, options.edit);
+    const explorer = new Explorer(projects, config, tmpDir, options.edit);
     const knowledgeGraph = await explorer.discover(options.edit ? recommendationsFile : undefined);
 
     // 2. Strategize
-    const architect = new Architect(bundleDir, TMP_DIR, config, options.edit);
+    const architect = new Architect(bundleDir, tmpDir, config, options.edit);
     const plan = await architect.strategize(
       knowledgeGraph,
       options.edit ? recommendationsFile : undefined,
@@ -178,11 +181,11 @@ export default class LearnCommand extends BaseCommand {
           // Fallback: This case shouldn't happen much with the new flattened architecture since everything is bundled
           // but if we are creating a NEW skill that isn't in the index yet, we might need a default project.
           // For now, let's assume skills are created in the first project encountered or a default if not found.
-          if (allProjects.length === 0) {
+          if (projects.length === 0) {
             logger.error(`Cannot create skill ${skillName}: no projects found to host it.`);
             continue;
           }
-          const defaultProject = allProjects[0];
+          const defaultProject = projects[0];
           // We probably want to split the skillName back to project-skill if it follows the pattern
           // or just put it in the first project's .skills directory.
           targetSkillPath = path.join(
@@ -245,7 +248,7 @@ export default class LearnCommand extends BaseCommand {
               logger.warn(`❌ Verification failed for ${skillName}:\n${output}`);
 
               gauntletReportPath = path.join(
-                TMP_DIR,
+                tmpDir,
                 `${target.name.replace(/\\s+/g, '-')}-gauntlet.txt`,
               );
               fs.writeFileSync(gauntletReportPath, output);
@@ -266,7 +269,7 @@ export default class LearnCommand extends BaseCommand {
 
     if (!options.edit) {
       logger.info('📝 Compiling high value recommendations...');
-      const driftFilesFolder = TMP_DIR;
+      const driftFilesFolder = tmpDir;
       if (!fs.existsSync(path.dirname(recommendationsFile))) {
         fs.mkdirSync(path.dirname(recommendationsFile), { recursive: true });
       }
@@ -274,8 +277,8 @@ export default class LearnCommand extends BaseCommand {
       const { AgentRunner } = await import('../../agents/AgentRunner.js');
       await AgentRunner.run('Recommender', 'agents/recommender.md', {
         drift_files_dir: driftFilesFolder,
-        skill_plan_file: path.join(TMP_DIR, 'skill-plan.json'),
-        knowledge_graph_file: path.join(TMP_DIR, 'knowledge-graph.json'),
+        skill_plan_file: path.join(tmpDir, 'skill-plan.json'),
+        knowledge_graph_file: path.join(tmpDir, 'knowledge-graph.json'),
         constitution: config.constitution,
         aiConfig: config.ai,
         output_file: recommendationsFile,

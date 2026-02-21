@@ -67,6 +67,7 @@ describe('LearnCommand', () => {
     // Default FS mocks
     vi.mocked(fs.existsSync).mockReturnValue(false);
     vi.mocked(fs.mkdirSync).mockReturnValue(undefined);
+    vi.mocked(Pipeline.getTmpDir).mockReturnValue('.agent/tmp/reskill');
 
     // Class mocks
     const mockProjects = [{ name: 'proj1', path: '/root/proj1', skillDir: '/root/proj1/.skills' }];

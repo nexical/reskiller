@@ -26,7 +26,7 @@ class Logger {
     if (this.command) {
       this.command.info(message);
     } else {
-      console.log(chalk.blue('ℹ'), message);
+      console.info(chalk.blue('ℹ'), message);
     }
   }
 
@@ -37,7 +37,7 @@ class Logger {
     if (this.command) {
       this.command.success(message);
     } else {
-      console.log(chalk.green('✔'), message);
+      console.info(chalk.green('✔'), message);
     }
   }
 
@@ -48,7 +48,7 @@ class Logger {
     if (this.command) {
       this.command.warn(message);
     } else {
-      console.log(chalk.yellow('⚠'), message);
+      console.warn(chalk.yellow('⚠'), message);
     }
   }
 
@@ -74,7 +74,7 @@ class Logger {
     if (this.debugEnabled) {
       const timestamp = new Date().toISOString();
       const prefix = chalk.gray(`[DEBUG ${timestamp}]`);
-      console.debug(prefix, message, ...args);
+      console.info(prefix, message, ...args);
     }
   }
 
@@ -86,7 +86,7 @@ class Logger {
     if (cmd?.notice) {
       cmd.notice(message);
     } else {
-      console.log(chalk.cyan('📢'), message);
+      console.info(chalk.cyan('📢'), message);
     }
   }
 }

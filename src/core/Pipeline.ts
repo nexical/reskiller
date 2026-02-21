@@ -5,11 +5,14 @@ import { ReskillConfig } from '../config.js';
 import { AgentRunner } from '../agents/AgentRunner.js';
 import { logger } from './Logger.js';
 
-const TMP_DIR = '.agent/tmp/reskill';
+export function getTmpDir(cwd: string): string {
+  return path.join(cwd, '.agent/tmp/reskill');
+}
 
-export function ensureTmpDir() {
-  if (!fs.existsSync(TMP_DIR)) {
-    fs.mkdirSync(TMP_DIR, { recursive: true });
+export function ensureTmpDir(cwd: string) {
+  const tmpDir = getTmpDir(cwd);
+  if (!fs.existsSync(tmpDir)) {
+    fs.mkdirSync(tmpDir, { recursive: true });
   }
 }
 
@@ -23,7 +26,7 @@ export async function stageAuditor(
 ): Promise<string> {
   const finalConfig = mergeConfig(config, target.overrides);
   logger.info(`🕵️  Auditing ${target.name}...`);
-  const outputFile = path.join(TMP_DIR, `${target.name.replace(/\s+/g, '-')}-canon.json`);
+  const outputFile = path.join(getTmpDir(cwd), `${target.name.replace(/\s+/g, '-')}-canon.json`);
   if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
 
   await AgentRunner.run('Auditor', 'agents/auditor.md', {
@@ -46,7 +49,7 @@ export async function stageCritic(
 ): Promise<string> {
   const finalConfig = mergeConfig(config, target.overrides);
   logger.info(`⚖️  Critiquing ${target.name}...`);
-  const outputFile = path.join(TMP_DIR, `${target.name.replace(/\s+/g, '-')}-drift.md`);
+  const outputFile = path.join(getTmpDir(cwd), `${target.name.replace(/\s+/g, '-')}-drift.md`);
   if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile);
 
   await AgentRunner.run('Critic', 'agents/critic.md', {
