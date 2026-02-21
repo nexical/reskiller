@@ -53,7 +53,9 @@ describe('SetupCommand', () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(fs.rmSync).mockImplementation(() => {});
 
-    const mockScanner = { scan: vi.fn().mockResolvedValue([]) };
+    const mockScanner = {
+      scan: vi.fn().mockResolvedValue([{ name: 'p1', path: '/p1', skillDir: '/p1/.skills' }]),
+    };
     vi.mocked(ProjectScanner).mockImplementation(function () {
       return mockScanner as unknown as ProjectScanner;
     });
@@ -105,5 +107,30 @@ describe('SetupCommand', () => {
       expect.stringContaining('Scoped directory does not exist'),
     );
     expect(Initializer.initialize).not.toHaveBeenCalled();
+  });
+
+  it('should not rmSync if .reskill/skills does not exist', async () => {
+    vi.mocked(fs.existsSync).mockImplementation((p) => {
+      if (p.toString().includes('.reskill/skills')) return false;
+      return true;
+    });
+    await command.run();
+    expect(fs.rmSync).not.toHaveBeenCalled();
+  });
+
+  it('should log error if setup fails', async () => {
+    vi.mocked(Initializer.initialize).mockImplementation(() => {
+      throw new Error('Init fail');
+    });
+    await command.run();
+    expect(logger.error).toHaveBeenCalledWith(expect.stringContaining('Setup failed'));
+  });
+
+  it('should handle config loading failure', async () => {
+    vi.mocked(configMod.getReskillConfig).mockImplementation(() => {
+      throw new Error('Config load fail');
+    });
+    await command.run();
+    expect(logger.error).toHaveBeenCalledWith('Config load fail');
   });
 });

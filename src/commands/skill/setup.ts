@@ -45,39 +45,43 @@ export default class SetupCommand extends BaseCommand {
       }
     }
 
-    // Auto-initialize environment (prompts, initial symlinks base)
-    const { Initializer } = await import('../../core/Initializer.js');
-    Initializer.initialize(config, root);
+    try {
+      // Auto-initialize environment (prompts, initial symlinks base)
+      const { Initializer } = await import('../../core/Initializer.js');
+      Initializer.initialize(config, root);
 
-    // 0. Clean integration directory
-    const integrationDir = path.join(root, '.reskill', 'skills');
-    if (fs.existsSync(integrationDir)) {
-      logger.info('🧹 Cleaning existing skill integration directory...');
-      fs.rmSync(integrationDir, { recursive: true, force: true });
+      // 0. Clean integration directory
+      const integrationDir = path.join(root, '.reskill', 'skills');
+      if (fs.existsSync(integrationDir)) {
+        logger.info('🧹 Cleaning existing skill integration directory...');
+        fs.rmSync(integrationDir, { recursive: true, force: true });
+      }
+
+      // 1. Discovery
+      logger.info('🔭 Discovering projects and bundling skills globally...');
+      const projectScanner = new ProjectScanner(config, root);
+      // Setup always bundles everything, regardless of scope
+      const projects = await projectScanner.scan();
+
+      logger.info(`✅ Found ${projects.length} projects.`);
+      for (const p of projects) {
+        logger.info(`   - ${p.name} (${path.relative(root, p.path)})`);
+      }
+
+      // 2. Bundling
+      const bundler = new Bundler(config, root);
+      await bundler.bundle(projects);
+      const bundleDir = bundler.getBundleDir();
+
+      // 3. Symlinking
+      ensureSymlinks(config, root, bundleDir);
+
+      // 4. Update Contexts
+      logger.info('📚 Updating Context Files...');
+      await updateContextFiles(config, root);
+      logger.success('✅ Skills successfully integrated. Context files updated.');
+    } catch (e) {
+      logger.error(`Setup failed: ${e}`);
     }
-
-    // 1. Discovery
-    logger.info('🔭 Discovering projects and bundling skills globally...');
-    const projectScanner = new ProjectScanner(config, root);
-    // Setup always bundles everything, regardless of scope
-    const projects = await projectScanner.scan();
-
-    logger.info(`✅ Found ${projects.length} projects.`);
-    for (const p of projects) {
-      logger.info(`   - ${p.name} (${path.relative(root, p.path)})`);
-    }
-
-    // 2. Bundling
-    const bundler = new Bundler(config, root);
-    await bundler.bundle(projects);
-    const bundleDir = bundler.getBundleDir();
-
-    // 3. Symlinking
-    ensureSymlinks(config, root, bundleDir);
-
-    // 4. Update Contexts
-    logger.info('📚 Updating Context Files...');
-    await updateContextFiles(config, root);
-    logger.success('✅ Skills successfully integrated. Context files updated.');
   }
 }

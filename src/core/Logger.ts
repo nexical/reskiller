@@ -8,7 +8,7 @@ class Logger {
   /**
    * Set the active command to delegate regular output to.
    */
-  setCommand(command: any) {
+  setCommand(command: BaseCommand | null) {
     this.command = command;
   }
 
@@ -82,8 +82,9 @@ class Logger {
    * Log notice message.
    */
   notice(message: string) {
-    if (this.command && (this.command as any).notice) {
-      (this.command as any).notice(message);
+    const cmd = this.command as (BaseCommand & { notice?: (m: string) => void }) | null;
+    if (cmd?.notice) {
+      cmd.notice(message);
     } else {
       console.log(chalk.cyan('📢'), message);
     }

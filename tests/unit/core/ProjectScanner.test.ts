@@ -154,4 +154,34 @@ describe('ProjectScanner', () => {
       expect(projects[0].name).toBe('a');
     });
   });
+
+  it('should load project-level reskiller.yaml overrides', async () => {
+    vi.mocked(fg).mockResolvedValue(['/mock/cwd/packages/a/.skills']);
+    vi.mocked(fs.existsSync).mockImplementation((p) => (p as string).endsWith('reskiller.yaml'));
+    vi.mocked(fs.readFileSync).mockReturnValue(
+      'constitution:\n  architecture: "Project Architecture"',
+    );
+
+    const scanner = new ProjectScanner(mockConfig as unknown as ReskillConfig, mockCwd);
+    const projects = await scanner.scan();
+
+    expect(projects[0].overrides).toBeDefined();
+    expect(projects[0].overrides?.constitution?.architecture).toBe('Project Architecture');
+  });
+
+  it('should break walk-up if parentDir is currentDir', async () => {
+    // This is to hit: if (parentDir === currentDir) break;
+    const scanner = new ProjectScanner(
+      {
+        discovery: { root: '.', markers: [], ignore: [], depth: 1 },
+      } as unknown as ReskillConfig,
+      '/',
+    );
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+
+    await (
+      scanner as unknown as { resolveOverrides: (p: string) => Promise<void> }
+    ).resolveOverrides('/');
+    // Successfully returned without hanging
+  });
 });

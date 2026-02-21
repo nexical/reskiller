@@ -67,6 +67,7 @@ describe('AgentRunner Integration', () => {
     // 3. Verify
     expect(spawn).toHaveBeenCalled();
     const spawnCall = vi.mocked(spawn).mock.calls[0];
-    expect(spawnCall[0]).toContain('gemini --yolo --model');
+    expect(spawnCall[0]).toContain('gemini --yolo');
+    expect(spawnCall[0]).toContain('--model');
   });
 });

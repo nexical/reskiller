@@ -147,7 +147,11 @@ export async function updateContextFiles(config: ReskillConfig, cwd: string = pr
       newContent = fileContent + '\n\n<skills>\n' + newSectionContent + '</skills>';
     }
 
-    fs.writeFileSync(contextFile, newContent, 'utf-8');
-    logger.info(`Updated ${contextFile}`);
+    try {
+      fs.writeFileSync(contextFile, newContent, 'utf-8');
+      logger.info(`Updated ${contextFile}`);
+    } catch (e) {
+      logger.error(`Failed to update context file ${contextFile}: ${e}`);
+    }
   }
 }

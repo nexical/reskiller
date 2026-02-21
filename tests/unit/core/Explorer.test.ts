@@ -18,7 +18,8 @@ describe('Explorer', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.mocked(fs.existsSync).mockReturnValue(true);
-    vi.mocked(fs.readdirSync).mockReturnValue([]);
+    // @ts-expect-error - mock return type mismatch
+    vi.mocked(fs.readdirSync).mockReturnValue(['existing-file'] as unknown as fs.Dirent[]);
     vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => false } as unknown as fs.Stats);
   });
 
@@ -101,5 +102,14 @@ describe('Explorer', () => {
       expect.stringContaining('modules-index.json'),
       expect.stringContaining('.skills'),
     );
+  });
+
+  it('listFiles should return empty array for non-existent directory', () => {
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+    const explorer = new Explorer([], mockConfig, mockTmpDir);
+    const results = (explorer as unknown as { listFiles: (p: string) => string[] }).listFiles(
+      '/non-existent',
+    );
+    expect(results).toEqual([]);
   });
 });

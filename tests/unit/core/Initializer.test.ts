@@ -64,4 +64,20 @@ describe('Initializer', () => {
     Initializer.initialize(mockConfig, mockRootDir, ensureSymlinksMock);
     expect(ensureSymlinksMock).toHaveBeenCalledWith(mockConfig);
   });
+
+  it('should skip copying if target is NOT empty', () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    // @ts-expect-error - mock return type mismatch
+    vi.mocked(fs.readdirSync).mockReturnValue(['existing-file'] as unknown as fs.Dirent[]);
+
+    Initializer.initialize(mockConfig, mockRootDir);
+
+    expect(fs.cpSync).not.toHaveBeenCalled();
+  });
+
+  it('should do nothing if source prompts do not exist', () => {
+    vi.mocked(fs.existsSync).mockImplementation((p) => p.toString().includes('.reskiller')); // Only target exists
+    Initializer.initialize(mockConfig, mockRootDir);
+    expect(fs.cpSync).not.toHaveBeenCalled();
+  });
 });

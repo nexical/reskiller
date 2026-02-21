@@ -115,4 +115,13 @@ describe('Symlinker', () => {
     expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to create symlink'));
     errorSpy.mockRestore();
   });
+
+  it('should not update gitignore if link already present', () => {
+    vi.mocked(fs.existsSync).mockImplementation((p) => p.toString().endsWith('.gitignore'));
+    vi.mocked(fs.readFileSync).mockReturnValue('target/link');
+
+    ensureSymlinks(mockConfig as unknown as ReskillConfig, mockCwd);
+
+    expect(fs.writeFileSync).not.toHaveBeenCalled();
+  });
 });

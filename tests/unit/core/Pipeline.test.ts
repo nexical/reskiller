@@ -154,12 +154,41 @@ describe('Pipeline', () => {
 
     it('should warn if context file missing', async () => {
       const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
-      vi.mocked(fs.existsSync).mockReturnValue(false); // No context file
+      vi.mocked(fs.existsSync).mockImplementation((p) => {
+        if (p.toString().includes('.reskill/skills')) return true;
+        return false;
+      });
+
+      await updateContextFiles(mockConfig as unknown as ReskillConfig, '/mock/cwd');
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Context file not found'));
+      warnSpy.mockRestore();
+    });
+
+    it('should warn if bundle directory missing', async () => {
+      const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+
+      await updateContextFiles(mockConfig as unknown as ReskillConfig, '/mock/cwd');
+
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Bundle directory not found'));
+      warnSpy.mockRestore();
+    });
+
+    it('should log error if context file update fails', async () => {
+      const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue('content');
+      vi.mocked(fs.writeFileSync).mockImplementation(() => {
+        throw new Error('Write failed');
+      });
 
       await updateContextFiles(mockConfig as unknown as ReskillConfig);
 
-      expect(warnSpy).toHaveBeenCalled();
-      warnSpy.mockRestore();
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to update context file'),
+      );
+      errorSpy.mockRestore();
     });
   });
 });

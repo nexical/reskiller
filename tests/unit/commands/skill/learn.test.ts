@@ -274,4 +274,201 @@ describe('LearnCommand', () => {
       expect.stringContaining('Failed to learn skill error-skill'),
     );
   });
+
+  it('should skip skill if pattern path is outside scope', async () => {
+    // @ts-expect-error - set projectRoot
+    command.projectRoot = '/root';
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [
+            {
+              type: 'create_skill',
+              target_skill: 'scoped-skill',
+              pattern_path: '../../outside/path',
+            },
+          ],
+        }),
+      } as unknown as Architect;
+    });
+
+    await command.run({ directory: 'scope' });
+
+    expect(Pipeline.stageAuditor).not.toHaveBeenCalled();
+    expect(command.warn).toHaveBeenCalledWith(
+      expect.stringContaining('is outside the allowed scope'),
+    );
+  });
+
+  it('should create skill in the first project if skill name is not in index', async () => {
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [{ type: 'create_skill', target_skill: 'brand-new-skill', pattern_path: 'path' }],
+        }),
+      } as unknown as Architect;
+    });
+
+    await command.run();
+
+    expect(fs.mkdirSync).toHaveBeenCalledWith(
+      expect.stringContaining('proj1/.skills/brand-new-skill'),
+      expect.any(Object),
+    );
+  });
+
+  it('should error if no projects found to host a new skill', async () => {
+    vi.mocked(ProjectScanner).mockImplementation(function () {
+      return {
+        scan: vi.fn().mockResolvedValue([]),
+      } as unknown as ProjectScanner;
+    });
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [{ type: 'create_skill', target_skill: 'brand-new-skill', pattern_path: 'path' }],
+        }),
+      } as unknown as Architect;
+    });
+
+    await command.run();
+
+    expect(command.error).toHaveBeenCalledWith(
+      expect.stringContaining('no projects found to host it'),
+    );
+  });
+
+  it('should retry verification on failure and succeed if subsequent attempt passes', async () => {
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [{ type: 'create_skill', target_skill: 'retry-skill', pattern_path: 'path' }],
+        }),
+      } as unknown as Architect;
+    });
+
+    const { execSync } = await import('node:child_process');
+    vi.mocked(execSync)
+      .mockImplementationOnce(() => {
+        throw { stdout: Buffer.from('Lint error') };
+      })
+      .mockImplementation(() => Buffer.from('Success'));
+
+    await command.run();
+
+    expect(Pipeline.stageInstructor).toHaveBeenCalledTimes(2);
+    expect(command.success).toHaveBeenCalledWith(
+      expect.stringContaining('retry-skill passed verification'),
+    );
+  });
+
+  it('should compile recommendations when not in edit mode', async () => {
+    await command.run({ edit: false });
+    const { AgentRunner } = await import('../../../../src/agents/AgentRunner.js');
+    expect(AgentRunner.run).toHaveBeenCalledWith(
+      'Recommender',
+      expect.any(String),
+      expect.any(Object),
+    );
+  });
+
+  it('should error if scoping directory does not exist', async () => {
+    // @ts-expect-error - set projectRoot
+    command.projectRoot = '/root';
+    vi.mocked(fs.existsSync).mockImplementation((p) => {
+      if (p === '/root/missing') return false;
+      return true;
+    });
+
+    await command.run({ directory: 'missing' });
+    expect(command.error).toHaveBeenCalledWith(
+      expect.stringContaining('Scoped directory does not exist'),
+    );
+  });
+
+  it('should log error when max verification attempts are exhausted', async () => {
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [{ type: 'create_skill', target_skill: 'fail-skill', pattern_path: 'path' }],
+        }),
+      } as unknown as Architect;
+    });
+
+    const { execSync } = await import('node:child_process');
+    vi.mocked(execSync).mockImplementation(() => {
+      throw new Error('Permanent Failure');
+    });
+
+    await command.run();
+
+    expect(Pipeline.stageInstructor).toHaveBeenCalledTimes(3);
+    expect(command.error).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to verify skill fail-skill after 3 attempts'),
+    );
+  });
+
+  it('should handle verification failures with just stderr', async () => {
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [{ type: 'create_skill', target_skill: 's1', pattern_path: 'p1' }],
+        }),
+      } as unknown as Architect;
+    });
+    const { execSync } = await import('node:child_process');
+    vi.mocked(execSync).mockImplementation(() => {
+      throw { stderr: Buffer.from('stderr error') };
+    });
+
+    await command.run();
+    expect(command.warn).toHaveBeenCalledWith(expect.stringContaining('stderr error'));
+  });
+
+  it('should create skill directory if missing', async () => {
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [{ type: 'create_skill', target_skill: 'new-skill', pattern_path: 'p1' }],
+        }),
+      } as unknown as Architect;
+    });
+    vi.mocked(fs.existsSync).mockImplementation((p) => {
+      if (p.toString().includes('new-skill')) return false;
+      return true;
+    });
+
+    await command.run();
+    expect(fs.mkdirSync).toHaveBeenCalledWith(
+      expect.stringContaining('new-skill'),
+      expect.any(Object),
+    );
+  });
+
+  it('should handle config loading failure', async () => {
+    vi.mocked(configMod.getReskillConfig).mockImplementation(() => {
+      throw new Error('Config load fail');
+    });
+    await command.run();
+    expect(command.error).toHaveBeenCalledWith('Config load fail');
+  });
+
+  it('should handle verification failures with stdout', async () => {
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [{ type: 'create_skill', target_skill: 's1', pattern_path: 'p1' }],
+        }),
+      } as unknown as Architect;
+    });
+    const { execSync } = await import('node:child_process');
+    vi.mocked(execSync).mockImplementation(() => {
+      throw { stdout: Buffer.from('stdout error') };
+    });
+
+    await command.run();
+    expect(command.warn).toHaveBeenCalledWith(expect.stringContaining('stdout error'));
+  });
 });

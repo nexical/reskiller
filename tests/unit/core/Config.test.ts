@@ -61,6 +61,14 @@ outputs:
     );
   });
 
+  it('should throw error if reskiller.yaml is invalid', () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readFileSync).mockReturnValue('invalid: yaml: :');
+    expect(() => getReskillConfig(mockCliConfig, mockProjectRoot)).toThrow(
+      'Failed to parse reskiller.yaml',
+    );
+  });
+
   describe('Merging', () => {
     const globalConfig = {
       constitution: { architecture: 'global.md', patterns: 'global-p.md' },
@@ -83,6 +91,14 @@ outputs:
       const merged = mergePartialConfigs(partial1, partial2);
       expect(merged.constitution?.architecture).toBe('p1.md');
       expect(merged.constitution?.patterns).toEqual(['p2.md']);
+    });
+
+    it('should merge even if some sections are missing in overrides', () => {
+      const merged = mergeConfig(globalConfig as ReskillConfig, {
+        outputs: { contextFiles: ['X.md'] },
+      });
+      expect(merged.outputs.contextFiles).toEqual(['X.md']);
+      expect(merged.constitution.architecture).toBe('global.md');
     });
   });
 });
