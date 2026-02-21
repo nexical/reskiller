@@ -227,12 +227,10 @@ export default class LearnCommand extends BaseCommand {
               gauntletReportPath,
             );
 
-            logger.info(
-              `🔍 Verifying skill format and lint (Attempt ${attempts}/${MAX_ATTEMPTS})...`,
-            );
+            logger.info(`🔍 Verifying skill lint (Attempt ${attempts}/${MAX_ATTEMPTS})...`);
             try {
-              execSync('npm run format', { cwd: root, stdio: 'pipe' });
-              execSync('npm run lint', { cwd: root, stdio: 'pipe' });
+              const verifyCwd = scope || root;
+              execSync('npm run lint', { cwd: verifyCwd, stdio: 'pipe' });
 
               verificationSuccess = true;
               logger.success(`✅ Skill ${skillName} passed verification!`);
