@@ -223,7 +223,7 @@ export default class LearnCommand extends BaseCommand {
               driftFile,
               config,
               root,
-              options.edit,
+              options.edit || !!gauntletReportPath,
               gauntletReportPath,
             );
 
