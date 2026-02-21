@@ -31,5 +31,6 @@ test-results*/
 blob-report/
 
 # Modular Architecture Artifacts
+.agent/tmp/
 .reskiller/
 .reskill/
