@@ -1,3 +1,8 @@
+---
+name: reskill-create-cli-command
+description: 'This skill guides the creation of new CLI commands within the `reskill` package, ensuring adherence to the `@nexical/cli-core` architecture and local patterns.'
+---
+
 # Skill: Create CLI Command (Reskill)
 
 This skill guides the creation of new CLI commands within the `reskill` package, ensuring adherence to the `@nexical/cli-core` architecture and local patterns.

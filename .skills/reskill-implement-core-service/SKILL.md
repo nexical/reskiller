@@ -1,3 +1,8 @@
+---
+name: reskill-implement-core-service
+description: 'Defines the standard patterns for implementing core services within the `@nexical/reskill` package.'
+---
+
 # Skill: Implementing Core Services in Reskill
 
 **Description**: Defines the standard patterns for implementing core services within the `@nexical/reskill` package.

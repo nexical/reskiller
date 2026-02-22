@@ -1,3 +1,8 @@
+---
+name: reskill-implement-agent-runner
+description: 'Implements the standard `AgentRunner` pattern for Reskill agents, ensuring consistent error handling, logging, and execution flow. This pattern enforces a stateless, static service architecture with s...'
+---
+
 # Skill: Implement Agent Runner
 
 ## Description
