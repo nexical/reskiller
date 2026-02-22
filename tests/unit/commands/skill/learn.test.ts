@@ -472,4 +472,95 @@ describe('LearnCommand', () => {
     await command.run();
     expect(command.warn).toHaveBeenCalledWith(expect.stringContaining('stdout error'));
   });
+
+  it('should skip Explorer and Architect when resuming with valid state', async () => {
+    vi.mocked(fs.existsSync).mockImplementation((p: fs.PathLike) => {
+      if (p.toString().includes('state.json')) return true;
+      if (p.toString().includes('skill-plan.json')) return true;
+      if (p.toString().includes('knowledge-graph.json')) return true;
+      return false;
+    });
+
+    vi.mocked(fs.readFileSync).mockImplementation((p: fs.PathOrFileDescriptor) => {
+      if (p.toString().includes('state.json'))
+        return JSON.stringify({ completedSkills: ['already-done'] });
+      if (p.toString().includes('skill-plan.json'))
+        return JSON.stringify({
+          plan: [{ type: 'create_skill', target_skill: 'new-skill', pattern_path: 'path' }],
+        });
+      return '';
+    });
+
+    const mockDiscover = vi.fn();
+    vi.mocked(Explorer).mockImplementation(function () {
+      return { discover: mockDiscover } as unknown as Explorer;
+    });
+
+    const mockStrategize = vi.fn();
+    vi.mocked(Architect).mockImplementation(function () {
+      return { strategize: mockStrategize } as unknown as Architect;
+    });
+
+    await command.run({ resume: true });
+
+    expect(mockDiscover).not.toHaveBeenCalled();
+    expect(mockStrategize).not.toHaveBeenCalled();
+    expect(command.info).toHaveBeenCalledWith(
+      expect.stringContaining('Skipping Explore and Strategize phases (resuming).'),
+    );
+  });
+
+  it('should skip already completed skills when resuming', async () => {
+    vi.mocked(fs.existsSync).mockImplementation((p: fs.PathLike) => {
+      if (p.toString().includes('state.json')) return true;
+      if (p.toString().includes('skill-plan.json')) return true;
+      if (p.toString().includes('knowledge-graph.json')) return true;
+      return false;
+    });
+
+    vi.mocked(fs.readFileSync).mockImplementation((p: fs.PathOrFileDescriptor) => {
+      if (p.toString().includes('state.json'))
+        return JSON.stringify({ completedSkills: ['done-skill'] });
+      if (p.toString().includes('skill-plan.json'))
+        return JSON.stringify({
+          plan: [
+            { type: 'create_skill', target_skill: 'done-skill', pattern_path: 'path' },
+            { type: 'create_skill', target_skill: 'pending-skill', pattern_path: 'path' },
+          ],
+        });
+      return '';
+    });
+
+    await command.run({ resume: true });
+
+    expect(command.info).toHaveBeenCalledWith(
+      expect.stringContaining('Skipping done-skill: already completed.'),
+    );
+    // Make sure the pending-skill is still targeted
+    expect(fs.mkdirSync).toHaveBeenCalledWith(
+      expect.stringContaining('pending-skill'),
+      expect.any(Object),
+    );
+  });
+
+  it('should clear old state if not resuming', async () => {
+    vi.mocked(fs.existsSync).mockImplementation((p: fs.PathLike) => {
+      if (p.toString().includes('state.json')) return true;
+      return false;
+    });
+    vi.mocked(fs.unlinkSync).mockImplementation(() => {});
+
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [{ type: 'create_skill', target_skill: 's1', pattern_path: 'p1' }],
+        }),
+      } as unknown as Architect;
+    });
+
+    await command.run({ resume: false });
+
+    // The state file should be unlinked
+    expect(fs.unlinkSync).toHaveBeenCalledWith(expect.stringContaining('state.json'));
+  });
 });

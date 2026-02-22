@@ -34,10 +34,15 @@ export default class LearnCommand extends BaseCommand {
         description: 'Toggle editing of code implementation and pattern files',
         default: false,
       },
+      {
+        name: '--resume',
+        description: 'Resume learning from the last failed point',
+        default: false,
+      },
     ],
   };
 
-  async run(options: { directory?: string; edit?: boolean } = {}) {
+  async run(options: { directory?: string; edit?: boolean; resume?: boolean } = {}) {
     logger.setCommand(this);
     logger.setDebug(this.globalOptions.debug);
 
@@ -65,6 +70,31 @@ export default class LearnCommand extends BaseCommand {
 
     const tmpDir = getTmpDir(scope || root);
     ensureTmpDir(scope || root);
+
+    const stateFile = path.join(tmpDir, 'state.json');
+    let state: { completedSkills: string[] } = { completedSkills: [] };
+
+    if (options.resume) {
+      if (fs.existsSync(stateFile)) {
+        try {
+          state = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+          logger.info(`🔄 Resuming from state: ${state.completedSkills.length} skills completed.`);
+        } catch {
+          logger.warn('Failed to parse state file. Starting fresh.');
+        }
+      } else {
+        logger.warn('No state file found. Starting fresh.');
+      }
+    } else {
+      // Clear state file if not resuming
+      if (fs.existsSync(stateFile)) {
+        fs.unlinkSync(stateFile);
+      }
+    }
+
+    const saveState = () => {
+      fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
+    };
 
     // 0. Discovery & Bundling
     logger.info('🔭 Discovering projects and bundling skills in scope...');
@@ -107,37 +137,46 @@ export default class LearnCommand extends BaseCommand {
     await bundler.bundle(projects);
     const bundleDir = bundler.getBundleDir();
 
-    // 1. Explore
-    // Architect reads from the distributed workspace paths directly instead of a centralized bundle,
-    // or we bundle explicitly for the Architect once?
-    // The previous code bundled here so the Architect could read from `bundleDir`.
-    // Let's create a temporary bundle for the Architect, or just let Bundler run here, but wait, the instruction is:
-    // "clean the skill integration directory before generating... move initialization in evolve to after"
-    // I will just use the bundler here into a temp dir for architect, OR I can just let it bundle to the main dir,
-    // but the user's intent is probably: "Run `nexical skill setup` at the end to finalize".
-    // Actually, I'll just leave the Discovery, but move Bundler entirely. Wait, Architect *needs* `bundleDir`.
-    // I will initialize `bundleDir` by running `Bundler` here but WITHOUT symlinking and context updating?
-    // Let's look at what `Bundler` does. It copies files to `.reskill/skills`.
-    // If we clean `.reskill/skills` in `setup`, and call `setup` at the end of `evolve`, that satisfies everything.
-    // I am going to delete the `Bundler` and `Symlinker` logic from here and just call `new SetupCommand().run()` at the end.
-    // WAIT: `Architect` is passed `bundleDir`. So `Bundler` MUST run before Architect!
-    // I will call `SetupCommand` *before* Architect? No, the user explicitly said "move the initialization in the evolve and refine commands to after the skills are generated, updated, or refined".
-    // Therefore, `evolve` must *not* bundle before generation. But `Architect` needs `bundleDir`. Let's re-read Architect! It reads from `.reskill/skills`.
-    // If I don't bundle before Architect, it explores nothing. The simplest approach: keep `Bundler` here, but move the Symlink/Initializer/Context to the end. Or call Setup twice.
-    // Let's just execute `SetupCommand` at the end!
+    const skillPlanFile = path.join(tmpDir, 'skill-plan.json');
     const recommendationsFile = path.resolve(root, '.reskill', 'recommendations.md');
 
-    const explorer = new Explorer(projects, config, tmpDir, options.edit);
-    const knowledgeGraph = await explorer.discover(options.edit ? recommendationsFile : undefined);
+    let plan: {
+      plan: { type: string; name?: string; target_skill?: string; pattern_path?: string }[];
+    };
+    let knowledgeGraph: string;
 
-    // 2. Strategize
-    const architect = new Architect(bundleDir, tmpDir, config, options.edit);
-    const plan = await architect.strategize(
-      knowledgeGraph,
-      options.edit ? recommendationsFile : undefined,
-    );
+    if (
+      options.resume &&
+      fs.existsSync(skillPlanFile) &&
+      fs.existsSync(path.join(tmpDir, 'knowledge-graph.json'))
+    ) {
+      logger.info('⏩ Skipping Explore and Strategize phases (resuming).');
+      try {
+        plan = JSON.parse(fs.readFileSync(skillPlanFile, 'utf-8'));
+        knowledgeGraph = path.join(tmpDir, 'knowledge-graph.json');
+        logger.debug('Loaded existing Skill Plan:', plan);
+      } catch {
+        logger.warn('Failed to load existing plan. Falling back to Explore and Strategize.');
+        options.resume = false;
+        // Proceed to regenerate
+      }
+    }
 
-    logger.debug('Skill Plan Proposed by Architect:', plan);
+    // We check again since it might have been set to false if parse failed
+    if (!options.resume || !plan!) {
+      // 1. Explore
+      const explorer = new Explorer(projects, config, tmpDir, options.edit);
+      knowledgeGraph = await explorer.discover(options.edit ? recommendationsFile : undefined);
+
+      // 2. Strategize
+      const architect = new Architect(bundleDir, tmpDir, config, options.edit);
+      plan = await architect.strategize(
+        knowledgeGraph,
+        options.edit ? recommendationsFile : undefined,
+      );
+
+      logger.debug('Skill Plan Proposed by Architect:', plan);
+    }
 
     // 3. Execute Loop
     logger.info('🚀 Executing Skill Learning Plan...');
@@ -154,6 +193,11 @@ export default class LearnCommand extends BaseCommand {
 
         if (!patternPath) {
           this.warn(`⚠️  Skipping ${skillName}: missing pattern path ${JSON.stringify(item)}`);
+          continue;
+        }
+
+        if (state.completedSkills.includes(skillName)) {
+          logger.info(`⏩ Skipping ${skillName}: already completed.`);
           continue;
         }
 
@@ -258,6 +302,9 @@ export default class LearnCommand extends BaseCommand {
 
           if (!verificationSuccess) {
             logger.error(`Failed to verify skill ${skillName} after ${MAX_ATTEMPTS} attempts.`);
+          } else {
+            state.completedSkills.push(skillName);
+            saveState();
           }
 
           await hooks.onSkillUpdated(target);
