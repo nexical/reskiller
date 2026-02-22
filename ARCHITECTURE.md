@@ -219,3 +219,36 @@ packages/reskill/
 ├── prompts/             # Default Agent Instructions
 └── ARCHITECTURE.md      # Architecture and functional specification (this file)
 ```
+
+---
+
+## 10. Codebase Canon & Implementation Patterns
+
+To ensure consistency and maintainability, Reskill enforces the following implementation patterns (The Canon):
+
+### 10.1 Agent Runner Pattern
+
+- **Description**: Agents are stateless, static service classes.
+- **Rule**: Agents MUST be classes with a `static async run()` method.
+- **Implementation**: They MUST delegate actual LLM interaction to `PromptRunner` or `AiClient`.
+- **Export**: Agents MUST use Named Exports.
+
+### 10.2 Core Service Pattern
+
+- **Description**: Core logic is encapsulated in classes with dependency injection.
+- **Rule**: Services MUST be classes receiving configuration/dependencies via the constructor.
+- **Export**: Services MUST use Named Exports.
+
+### 10.3 CLI Command Structure
+
+- **Description**: Commands extend the base CLI framework.
+- **Rule**: Commands MUST extend `BaseCommand` from `@nexical/cli-core`.
+- **Initialization**: Commands MUST initialize the logger (`logger.setCommand(this)`) at the start of `run()`.
+- **Export**: Commands MUST be `default` exported.
+
+### 10.4 Strict ESM & Hygiene
+
+- **Imports**: All local imports MUST use the `.js` extension (e.g., `import { x } from './file.js'`).
+- **Node Built-ins**: MUST use the `node:` protocol prefix (e.g., `import path from 'node:path'`).
+- **Logging**: Direct `console` usage is FORBIDDEN. Use the centralized `logger` from `@/core/Logger.js`.
+- **Configuration**: Configuration objects MUST be defined and validated using **Zod** schemas.
