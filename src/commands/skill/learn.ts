@@ -230,12 +230,20 @@ export default class LearnCommand extends BaseCommand {
             continue;
           }
           const defaultProject = projects[0];
-          // We probably want to split the skillName back to project-skill if it follows the pattern
-          // or just put it in the first project's .skills directory.
-          targetSkillPath = path.join(
-            defaultProject.skillDir,
-            skillName.replace(`${defaultProject.name}-`, ''),
-          );
+
+          let cleanSkillName = skillName;
+          const projectPrefix = `${defaultProject.name}-`;
+          const dirPrefix = `${path.basename(defaultProject.path)}-`;
+
+          if (cleanSkillName.startsWith(projectPrefix)) {
+            // e.g. "nexical-generator-create-command" -> "create-command"
+            cleanSkillName = cleanSkillName.substring(projectPrefix.length);
+          } else if (cleanSkillName.startsWith(dirPrefix)) {
+            // e.g. "generator-create-command" -> "create-command"
+            cleanSkillName = cleanSkillName.substring(dirPrefix.length);
+          }
+
+          targetSkillPath = path.join(defaultProject.skillDir, cleanSkillName);
           targetOverrides = defaultProject.overrides;
           logger.info(`📍 Targeting NEW skill at: ${targetSkillPath}`);
         }
