@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@nexical/ai": "^0.1.5",
-    "@nexical/cli-core": "^0.1.12",
+    "@nexical/cli-core": "^0.1.16",
     "chalk": "^5.6.2",
     "chokidar": "^5.0.0",
     "fast-glob": "^3.3.3",
