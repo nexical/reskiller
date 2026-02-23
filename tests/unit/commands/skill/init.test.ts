@@ -238,5 +238,41 @@ describe('InitCommand', () => {
         expect.stringContaining('Created reskiller.yaml'),
       );
     });
+
+    it('should use process.cwd() if projectRoot is not set', async () => {
+      // @ts-expect-error - overriding protected property
+      command.projectRoot = undefined;
+      const cwd = process.cwd();
+      const reskillerYamlPath = path.join(cwd, 'reskiller.yaml');
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+
+      await command.run();
+
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        reskillerYamlPath,
+        expect.stringContaining('constitution'),
+      );
+    });
+
+    it('should handle empty yaml parsing in fallback', async () => {
+      const nexicalYamlPath = path.join(projectRoot, 'nexical.yaml');
+      vi.mocked(fs.existsSync).mockImplementation((p: fs.PathLike) => {
+        if (p === nexicalYamlPath) return true;
+        return false;
+      });
+      vi.mocked(fs.readFileSync).mockReturnValue('');
+
+      vi.mocked(yaml.parseDocument).mockImplementation(() => {
+        throw new Error('Parse error');
+      });
+      vi.mocked(yaml.parse).mockReturnValue(null);
+
+      await command.run();
+
+      expect(fs.writeFileSync).toHaveBeenCalled();
+      expect(logger.success).toHaveBeenCalledWith(
+        expect.stringContaining('Added reskill configuration to nexical.yaml'),
+      );
+    });
   });
 });

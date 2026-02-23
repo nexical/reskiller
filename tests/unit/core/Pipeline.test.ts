@@ -43,6 +43,12 @@ describe('Pipeline', () => {
         recursive: true,
       });
     });
+
+    it('should skip creating tmp dir if it exists', () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      ensureTmpDir(mockCwd);
+      expect(fs.mkdirSync).not.toHaveBeenCalled();
+    });
   });
 
   describe('Stage wrappers', () => {
@@ -80,6 +86,30 @@ describe('Pipeline', () => {
         'agents/instructor.md',
         expect.any(Object),
       );
+    });
+
+    it('stageAuditor should unlink existing outputFile', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      await stageAuditor(target, mockConfig as unknown as ReskillConfig, mockCwd);
+      expect(fs.unlinkSync).toHaveBeenCalled();
+    });
+
+    it('stageCritic should unlink existing outputFile', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      await stageCritic(target, 'canon.json', mockConfig as unknown as ReskillConfig, mockCwd);
+      expect(fs.unlinkSync).toHaveBeenCalled();
+    });
+
+    it('stageAuditor should not unlink if outputFile does not exist', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+      await stageAuditor(target, mockConfig as unknown as ReskillConfig, mockCwd);
+      expect(fs.unlinkSync).not.toHaveBeenCalled();
+    });
+
+    it('stageCritic should not unlink if outputFile does not exist', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+      await stageCritic(target, 'canon.json', mockConfig as unknown as ReskillConfig, mockCwd);
+      expect(fs.unlinkSync).not.toHaveBeenCalled();
     });
   });
 
@@ -189,6 +219,65 @@ describe('Pipeline', () => {
         expect.stringContaining('Failed to update context file'),
       );
       errorSpy.mockRestore();
+    });
+
+    it('should skip skill if SKILL.md missing', async () => {
+      vi.mocked(fs.readdirSync).mockImplementation(((dir: string) => {
+        if (dir === mockBundleDir) return ['skill1'];
+        return [];
+      }) as unknown as typeof fs.readdirSync);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as unknown as fs.Stats);
+      vi.mocked(fs.existsSync).mockImplementation(((p: string) => {
+        if (p === mockBundleDir) return true;
+        if (p === '/mock/context.md') return true;
+        if (p.endsWith('SKILL.md')) return false;
+        return false;
+      }) as unknown as typeof fs.existsSync);
+      vi.mocked(fs.readFileSync).mockReturnValue('Old content');
+
+      await updateContextFiles(mockConfig as unknown as ReskillConfig, '/mock/cwd');
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        '/mock/context.md',
+        expect.stringContaining('access to the following'),
+        'utf-8',
+      );
+    });
+
+    it('should use default description if match fails', async () => {
+      vi.mocked(fs.readdirSync).mockImplementation(((dir: string) => {
+        if (dir === mockBundleDir) return ['skill1'];
+        return [];
+      }) as unknown as typeof fs.readdirSync);
+      vi.mocked(fs.statSync).mockReturnValue({ isDirectory: () => true } as unknown as fs.Stats);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockImplementation(((p: string | Buffer | URL) => {
+        if (p.toString().endsWith('SKILL.md')) return 'No desc here';
+        return 'Old content';
+      }) as unknown as typeof fs.readFileSync);
+
+      await updateContextFiles(mockConfig as unknown as ReskillConfig, '/mock/cwd');
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        '/mock/context.md',
+        expect.stringContaining('No description provided'),
+        'utf-8',
+      );
+    });
+
+    it('should handle legacy section at the end of file', async () => {
+      vi.mocked(fs.readdirSync).mockReturnValue([]);
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockImplementation(((p: string | Buffer | URL) => {
+        if (p.toString().endsWith('context.md')) return 'Pre \n## 6. Skill Index\nOld';
+        return '';
+      }) as unknown as typeof fs.readFileSync);
+
+      await updateContextFiles(mockConfig as unknown as ReskillConfig);
+
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        '/mock/context.md',
+        expect.stringContaining('## 6. Skill Index'),
+        'utf-8',
+      );
     });
   });
 });

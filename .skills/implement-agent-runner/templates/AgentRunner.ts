@@ -8,7 +8,7 @@ export class AgentRunner {
   /**
    * Main entry point. Must be static.
    */
-  static async run(context: any): Promise<void> {
+  static async run(context: unknown): Promise<void> {
     const agentName = 'AgentRunner';
 
     try {

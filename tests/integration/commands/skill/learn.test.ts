@@ -13,7 +13,7 @@ describe('LearnCommand Integration', () => {
     vi.resetModules(); // Clear cache
     vi.resetAllMocks();
 
-    projectDir = createTestProject('evolve-test');
+    projectDir = createTestProject(`evolve-test-${Math.random().toString(36).substring(2, 7)}`);
     // Create .skills dir to satisfy scanner
     fs.mkdirSync(path.join(projectDir, '.skills'), { recursive: true });
 
@@ -33,6 +33,7 @@ describe('LearnCommand Integration', () => {
     // Mock Pipeline dynamically
     vi.doMock('../../../../src/core/Pipeline.js', () => ({
       ensureTmpDir: vi.fn(),
+      getTmpDir: vi.fn().mockReturnValue(path.join(projectDir, '.agent/tmp/reskill')),
       stageAuditor: vi.fn().mockReturnValue('canon.md'),
       stageCritic: vi.fn().mockReturnValue('drift.md'),
       stageInstructor: vi.fn(),
@@ -168,5 +169,49 @@ describe('LearnCommand Integration', () => {
     expect(command.error).toHaveBeenCalledWith(
       expect.stringContaining('Scoped directory does not exist'),
     );
+  });
+
+  it('should resume execution from state file', async () => {
+    const tmpDir = path.join(projectDir, '.agent/tmp/reskill');
+    const stateFile = path.join(tmpDir, 'state.json');
+    if (fs.existsSync(stateFile)) fs.unlinkSync(stateFile);
+    fs.mkdirSync(tmpDir, { recursive: true });
+
+    const state = {
+      completedSkills: ['skill-done'],
+    };
+    fs.writeFileSync(stateFile, JSON.stringify(state));
+
+    // Also need to mock the Architect to return the plan we expect if resume falls back,
+    // but here we expect it to use the discovery/strategize because we aren't resuming the PLAN itself,
+    // just the execution state.
+    // Wait, learn.ts also resumes the plan if skill-plan.json exists.
+    const skillPlanFile = path.join(tmpDir, 'skill-plan.json');
+    const plan = {
+      plan: [
+        { type: 'create_skill', target_skill: 'skill-done', pattern_path: 'path1' },
+        { type: 'create_skill', target_skill: 'skill-ready', pattern_path: 'path2' },
+      ],
+    };
+    fs.writeFileSync(skillPlanFile, JSON.stringify(plan));
+    fs.writeFileSync(path.join(tmpDir, 'knowledge-graph.json'), '{}');
+
+    await command.run({ resume: true });
+
+    const { stageAuditor } = await import('../../../../src/core/Pipeline.js');
+    // It should skip 'skill-done' and call stageAuditor for 'skill-ready'
+    expect(stageAuditor).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'skill-ready' }),
+      expect.anything(),
+      expect.anything(),
+      undefined,
+    );
+  });
+
+  it('should skip recommendations and use edit pipeline in edit mode', async () => {
+    await command.run({ edit: true });
+
+    const { stageInstructor } = await import('../../../../src/core/Pipeline.js');
+    expect(stageInstructor).toHaveBeenCalled();
   });
 });

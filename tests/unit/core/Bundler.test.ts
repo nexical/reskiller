@@ -70,7 +70,9 @@ describe('Bundler', () => {
     const projects = [{ name: 'fail', path: '/mock/fail', skillDir: '/mock/fail/.skills' }];
     vi.mocked(fs.existsSync).mockReturnValue(true);
     // @ts-expect-error - mock return type mismatch
-    vi.mocked(fs.readdirSync).mockReturnValue(['existing-file'] as unknown as fs.Dirent[]);
+    vi.mocked(fs.readdirSync).mockReturnValue([
+      { name: 'skill-dir', isDirectory: () => true },
+    ] as unknown as fs.Dirent[]);
     vi.mocked(fs.symlinkSync).mockImplementation(() => {
       throw new Error('Symlink failed');
     });
@@ -78,6 +80,11 @@ describe('Bundler', () => {
     const bundler = new Bundler(mockConfig as unknown as ReskillConfig, mockCwd);
     await bundler.bundle(projects);
     // Should not throw
+  });
+
+  it('should use process.cwd() if cwd is not provided', () => {
+    const bundler = new Bundler(mockConfig as unknown as ReskillConfig);
+    expect(bundler.getBundleDir()).toBe(path.join(process.cwd(), '.reskill', 'skills'));
   });
 
   it('should handle missing bundle directory during bundle', async () => {

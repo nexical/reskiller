@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AgentRunner } from '../../../src/agents/AgentRunner.js';
-import { PromptRunner } from '../../../src/agents/PromptRunner.js';
+import { PromptRunner } from '@nexical/ai';
 
-vi.mock('../../../src/agents/PromptRunner.js');
+vi.mock('@nexical/ai');
 
 describe('AgentRunner', () => {
   beforeEach(() => {
@@ -11,29 +11,31 @@ describe('AgentRunner', () => {
 
   it('should call PromptRunner.run with correct arguments', async () => {
     const consoleSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    vi.mocked(PromptRunner.run).mockResolvedValue(0);
 
+    const cwd = process.cwd();
     await AgentRunner.run('TestAgent', 'path/to/prompt.md', {
       foo: 'bar',
       nested: { key: 'value' },
+      cwd,
     });
 
     expect(PromptRunner.run).toHaveBeenCalledWith(
       expect.objectContaining({
         promptName: 'path/to/prompt.md',
-        foo: 'bar',
-        nested: { key: 'value' },
+        args: expect.objectContaining({ foo: 'bar' }),
       }),
     );
 
     consoleSpy.mockRestore();
   });
 
-  it('should throw error if execution fails', async () => {
+  it('should throw error if execution fails (exit code !== 0)', async () => {
     const consoleSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
-    vi.mocked(PromptRunner.run).mockRejectedValue(new Error('Command failed'));
+    vi.mocked(PromptRunner.run).mockResolvedValue(1);
 
     await expect(AgentRunner.run('TestAgent', 'path', {})).rejects.toThrow(
-      'Agent TestAgent failed execution: Command failed',
+      'Agent TestAgent failed execution: Execution failed with code 1',
     );
 
     consoleSpy.mockRestore();

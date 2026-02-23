@@ -28,6 +28,14 @@ vi.mock('../../../../src/agents/AgentRunner.js', () => ({
     run: vi.fn().mockResolvedValue('Recommendations'),
   },
 }));
+vi.mock('node:path', async () => {
+  const actual = await vi.importActual<typeof import('node:path')>('node:path');
+  return {
+    ...actual,
+    relative: vi.fn((from: string, to: string) => actual.relative(from, to)),
+    isAbsolute: vi.fn((p: string) => actual.isAbsolute(p)),
+  };
+});
 export const mockSetupRun = vi.fn().mockResolvedValue(true);
 vi.mock('../../../../src/commands/skill/setup.js', () => {
   return {
@@ -562,5 +570,300 @@ describe('LearnCommand', () => {
 
     // The state file should be unlinked
     expect(fs.unlinkSync).toHaveBeenCalledWith(expect.stringContaining('state.json'));
+  });
+
+  it('should handle corrupted state file when resuming', async () => {
+    vi.mocked(fs.existsSync).mockImplementation((p: fs.PathLike) => {
+      if (p.toString().includes('state.json')) return true;
+      return false;
+    });
+    vi.mocked(fs.readFileSync).mockReturnValue('invalid-json');
+
+    await command.run({ resume: true });
+
+    expect(command.warn).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to parse state file'),
+    );
+  });
+
+  it('should handle missing state file when resuming', async () => {
+    vi.mocked(fs.existsSync).mockImplementation((p: fs.PathLike) => {
+      if (p.toString().includes('state.json')) return false;
+      return false;
+    });
+
+    await command.run({ resume: true });
+
+    expect(command.warn).toHaveBeenCalledWith(expect.stringContaining('No state file found'));
+  });
+
+  it('should handle corrupted skill plan when resuming', async () => {
+    vi.mocked(fs.existsSync).mockImplementation((p: fs.PathLike) => {
+      if (p.toString().includes('state.json')) return true;
+      if (p.toString().includes('skill-plan.json')) return true;
+      if (p.toString().includes('knowledge-graph.json')) return true;
+      return false;
+    });
+
+    vi.mocked(fs.readFileSync).mockImplementation((p: fs.PathOrFileDescriptor) => {
+      if (p.toString().includes('state.json')) return JSON.stringify({ completedSkills: [] });
+      if (p.toString().includes('skill-plan.json')) return 'invalid-json';
+      return '';
+    });
+
+    await command.run({ resume: true });
+
+    expect(command.warn).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to load existing plan'),
+    );
+  });
+
+  it('should handle non-skill plan items', async () => {
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [{ type: 'unknown_type', name: 'whatever' }],
+        }),
+      } as unknown as Architect;
+    });
+
+    await command.run();
+    expect(Pipeline.stageAuditor).not.toHaveBeenCalled();
+  });
+
+  it('should skip skill if pattern path is absolute and outside scope', async () => {
+    // @ts-expect-error - set projectRoot
+    command.projectRoot = '/root';
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [
+            {
+              type: 'create_skill',
+              target_skill: 'scoped-skill',
+              pattern_path: '/outside/path',
+            },
+          ],
+        }),
+      } as unknown as Architect;
+    });
+
+    vi.mocked(path.relative).mockReturnValue('absolute/path'); // Not starting with ..
+    vi.mocked(path.isAbsolute).mockReturnValue(true);
+
+    await command.run({ directory: 'scope' });
+
+    expect(Pipeline.stageAuditor).not.toHaveBeenCalled();
+    expect(command.warn).toHaveBeenCalledWith(
+      expect.stringContaining('is outside the allowed scope'),
+    );
+    vi.mocked(path.relative).mockRestore();
+    vi.mocked(path.isAbsolute).mockRestore();
+  });
+
+  it('should skip skill if relative path is exactly ..', async () => {
+    // @ts-expect-error - set projectRoot
+    command.projectRoot = '/root';
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [
+            {
+              type: 'create_skill',
+              target_skill: 'scoped-skill',
+              pattern_path: '../outside',
+            },
+          ],
+        }),
+      } as unknown as Architect;
+    });
+
+    vi.mocked(path.relative).mockReturnValue('..');
+
+    await command.run({ directory: 'scope' });
+
+    expect(Pipeline.stageAuditor).not.toHaveBeenCalled();
+    vi.mocked(path.relative).mockRestore();
+  });
+
+  it('should handle verification failures with only message', async () => {
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [{ type: 'create_skill', target_skill: 's1', pattern_path: 'p1' }],
+        }),
+      } as unknown as Architect;
+    });
+    const { execSync } = await import('node:child_process');
+    vi.mocked(execSync).mockImplementation(() => {
+      throw new Error('simple message error');
+    });
+
+    await command.run();
+    expect(command.warn).toHaveBeenCalledWith(expect.stringContaining('simple message error'));
+  });
+
+  it('should handle verification failures with toString', async () => {
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [{ type: 'create_skill', target_skill: 's1', pattern_path: 'p1' }],
+        }),
+      } as unknown as Architect;
+    });
+    const { execSync } = await import('node:child_process');
+    vi.mocked(execSync).mockImplementation(() => {
+      throw 'string error';
+    });
+
+    await command.run();
+    expect(command.warn).toHaveBeenCalledWith(expect.stringContaining('string error'));
+  });
+
+  it('should skip recommendations and audit/critic edit mode when edit is true', async () => {
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [{ type: 'create_skill', target_skill: 's1', pattern_path: 'p1' }],
+        }),
+      } as unknown as Architect;
+    });
+
+    await command.run({ edit: true });
+
+    expect(Pipeline.stageAuditor).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.any(Object),
+      expect.any(String),
+      true,
+    );
+    const { AgentRunner } = await import('../../../../src/agents/AgentRunner.js');
+    expect(AgentRunner.run).not.toHaveBeenCalledWith(
+      'Recommender',
+      expect.any(String),
+      expect.any(Object),
+    );
+  });
+
+  it('should skip non-directory files in distributed skill index', async () => {
+    const mockProjects = [
+      {
+        name: 'proj1',
+        path: '/root/proj1',
+        skillDir: '/root/proj1/.skills',
+      },
+    ];
+    vi.mocked(ProjectScanner).mockImplementation(function () {
+      return {
+        scan: vi.fn().mockResolvedValue(mockProjects),
+      } as unknown as ProjectScanner;
+    });
+
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.readdirSync).mockImplementation(((p: fs.PathLike) => {
+      if (p.toString().includes('.skills') && !p.toString().includes('prompts')) {
+        return [
+          {
+            name: 'not-a-dir',
+            isDirectory: () => false,
+          } as unknown as fs.Dirent,
+        ];
+      }
+      return [];
+    }) as unknown as typeof fs.readdirSync);
+
+    await command.run();
+
+    // The distributedSkillIndex should be empty
+    expect(command.info).not.toHaveBeenCalledWith(
+      expect.stringContaining('Targeting distributed skill'),
+    );
+  });
+
+  it('should skip creating directory if skillPath already exists', async () => {
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [{ type: 'create_skill', target_skill: 'existing-skill', pattern_path: 'p1' }],
+        }),
+      } as unknown as Architect;
+    });
+    vi.mocked(fs.existsSync).mockImplementation((p) => {
+      if (p.toString().includes('existing-skill')) return true;
+      return true;
+    });
+
+    await command.run();
+    expect(fs.mkdirSync).not.toHaveBeenCalledWith(
+      expect.stringContaining('existing-skill'),
+      expect.any(Object),
+    );
+  });
+
+  it('should use name if target_skill is missing in plan item', async () => {
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [
+            {
+              type: 'create_skill',
+              name: 'fallback-skill',
+              pattern_path: 'path/to/pattern',
+            },
+          ],
+        }),
+      } as unknown as Architect;
+    });
+
+    await command.run();
+
+    expect(Pipeline.stageAuditor).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'fallback-skill' }),
+      expect.anything(),
+      expect.anything(),
+      undefined,
+    );
+  });
+
+  it('should fall back to explore if resume is true but plan files are missing', async () => {
+    vi.mocked(fs.existsSync).mockImplementation((p) => {
+      if (p.toString().includes('skill-plan.json')) return false;
+      return true;
+    });
+    await command.run({ resume: true });
+    expect(Explorer).toHaveBeenCalled();
+  });
+
+  it('should handle update_skill item type', async () => {
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [{ type: 'update_skill', target_skill: 's1', pattern_path: 'p1' }],
+        }),
+      } as unknown as Architect;
+    });
+    await command.run();
+    expect(Pipeline.stageAuditor).toHaveBeenCalled();
+  });
+
+  it('should fallback to name if target_skill is empty string', async () => {
+    vi.mocked(Architect).mockImplementation(function () {
+      return {
+        strategize: vi.fn().mockResolvedValue({
+          plan: [{ type: 'create_skill', target_skill: '', name: 'n1', pattern_path: 'p1' }],
+        }),
+      } as unknown as Architect;
+    });
+    await command.run();
+    expect(Pipeline.stageAuditor).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'n1' }),
+      expect.anything(),
+      expect.anything(),
+      undefined,
+    );
   });
 });

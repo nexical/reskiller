@@ -133,4 +133,57 @@ describe('SetupCommand', () => {
     await command.run();
     expect(logger.error).toHaveBeenCalledWith('Config load fail');
   });
+
+  it('should use process.cwd() if projectRoot is not set', async () => {
+    // @ts-expect-error - overriding protected property
+    command.projectRoot = undefined;
+
+    await command.run();
+
+    expect(Initializer.initialize).toHaveBeenCalledWith(expect.anything(), process.cwd());
+  });
+
+  it('should handle non-error in setup failure', async () => {
+    vi.mocked(Initializer.initialize).mockImplementation(() => {
+      throw 'string error';
+    });
+    await command.run();
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('Setup failed: string error'),
+    );
+  });
+
+  it('should handle non-error object in setup failure', async () => {
+    vi.mocked(Initializer.initialize).mockImplementation(() => {
+      throw { toString: () => 'object error' };
+    });
+    await command.run();
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('Setup failed: object error'),
+    );
+  });
+
+  it('should handle undefined in setup failure', async () => {
+    const { getReskillConfig } = await import('../../../../src/config.js');
+    vi.mocked(getReskillConfig).mockImplementation(() => {
+      throw undefined;
+    });
+    await command.run();
+    expect(logger.error).toHaveBeenCalledWith('undefined');
+    vi.mocked(getReskillConfig).mockRestore();
+  });
+
+  it('should handle empty projects list', async () => {
+    const mockScanner = {
+      scan: vi.fn().mockResolvedValue([]),
+    };
+    vi.mocked(ProjectScanner).mockImplementation(function () {
+      return mockScanner as unknown as ProjectScanner;
+    });
+
+    await command.run();
+
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Found 0 projects'));
+    expect(Bundler).toHaveBeenCalledWith(expect.anything(), '/mock/root');
+  });
 });
