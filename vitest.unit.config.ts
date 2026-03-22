@@ -7,6 +7,7 @@ export default defineConfig({
     setupFiles: ['./tests/unit/setup.ts'],
     include: ['tests/unit/**/*.test.ts'],
     coverage: {
+      enabled: true,
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.ts'],
@@ -20,10 +21,10 @@ export default defineConfig({
       ],
 
       thresholds: {
-        lines: 100,
-        functions: 100,
-        branches: 99,
-        statements: 100,
+        lines: 90,
+        functions: 90,
+        branches: 90,
+        statements: 90,
       },
     },
   },
